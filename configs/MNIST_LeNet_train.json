@@ -1,0 +1,63 @@
+{
+    "name": "MNIST-LeNet",
+    "n_gpu": 1,
+    "method": "train",
+    "arch": {
+        "type": "LeNetModel",
+        "args": {
+            "num_classes": 10
+        }
+    },
+    "dataset": {
+        "type": "ColoredMNIST",
+        "args": {
+            "root": "data",
+            "dataset_type": "2_Spurious_MNIST",
+            "split": "training",
+            "normalize": false
+        },
+        "train_split": 0.8
+    },
+    "data_loader": {
+        "args":{
+            "batch_size": 256,
+            "num_workers": 8
+        }
+    },
+    "optimizer": {
+        "type": "Adam",
+        "args":{
+            "lr": 1e-3,
+            "weight_decay": 0,
+            "amsgrad": false
+        }
+    },
+    "loss": "cross_entropy",
+    "metrics": [
+        "accuracy",
+        "per_class_accuracy",
+        "precision",
+        "recall",
+        "f1",
+        "predicted_class_distribution"
+    ],
+    "lr_scheduler": {
+        "type": "StepLR",
+        "args": {
+            "step_size": 50,
+            "gamma": 1
+        }
+    },
+    "trainer": {
+        "epochs": 30,
+
+        "save_dir": "saved/train/debug",
+        "save_period": 1,
+        "verbosity": 2,
+
+        "monitor": "min val_loss",
+        "early_stop": 10,
+
+        "tensorboard": true
+    }
+}
