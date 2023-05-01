@@ -1,0 +1,197 @@
+# import os, sys
+# import argparse
+# import json
+# from datetime import datetime
+
+# sys.path.insert(0, 'src')
+# import datasets.datasets as datasets
+# from predict import predict
+# from utils.utils import read_json, informal_log
+
+# def save_features(config_path):
+#     config_dict = read_json(config_path)
+
+#     # Set up trial directory stuff
+#     timestamp = datetime.now().strftime(r'%m%d_%H%M%S')
+#     save_root = os.path.join(
+#         config_dict['trainer']['save_dir'],
+#         config_dict['name'],
+#         timestamp)
+#     trial_paths_path = os.path.join(save_root, 'trial_paths.txt')
+#     progress_report_path = os.path.join(save_root, 'progress_report.txt')
+
+#     print("Printing progress reports to {}".format(progress_report_path))
+#     informal_log("Saving path to directories for each trial to {}".format(trial_paths_path), progress_report_path)
+
+
+
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser(description='ImageNet Predictions')
+#     parser.add_argument('-c', '--config', default=None, type=str,
+#                       help='config file path (default: None)')
+#     args = parser.parse_args()
+
+#     save_features(
+#         config_path=args.config)
+
+import pickle, time
+import torch
+import torchvision
+import torchvision.transforms as transforms
+from PIL import Image
+import pandas as pd
+from datetime import datetime
+import argparse
+from tqdm import tqdm
+import numpy as np
+import os, sys
+
+sys.path.insert(0, 'src')
+from utils.utils import ensure_dir, read_json
+from utils.model_utils import prepare_device
+import datasets.datasets as datasets_module
+
+def save_features(config_path):
+    config_dict = read_json(config_path)
+
+    use_cuda = torch.cuda.is_available()
+    # device = torch.device("cuda" if use_cuda else "cpu")
+    device, _ = prepare_device(config_dict['n_gpu'])
+    dtype = torch.float32
+    timestamp = datetime.now().strftime(r'%m%d_%H%M%S')
+    save_dir = os.path.join('saved', 'ADE20K', timestamp)
+    ensure_dir(save_dir)
+    arch = 'resnet18'
+
+    model_file = '%s_places365.pth' % arch
+    places_model = torchvision.models.__dict__[arch](num_classes=365)
+    checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
+    state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+    places_model.load_state_dict(state_dict)
+    places_model.eval()
+
+    places_model_base = torch.nn.Sequential( *list(places_model.children())[:-1])
+    places_model_base.eval()
+
+
+    # model = torchvision.models.resnet18(pretrained=True)
+    # model.eval()
+    # model_base = torch.nn.Sequential( *list(model.children())[:-1])
+    # model_base.eval()
+
+    # Create transforms
+    # center_crop = transforms.Compose([
+    #                 transforms.Resize((256, 256)),
+    #                 transforms.CenterCrop(224),
+    #                 transforms.ToTensor(),
+    #                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+
+    dataset_args = config_dict['dataset']['args']
+    dataloader_args = config_dict['data_loader']['args']
+    datasets = {}
+    for split in ['train', 'val', 'test']:
+        dataset = datasets_module.ADE20KDataset(**dataset_args, split=split)
+
+        datasets[split] = dataset
+
+    # train_dataset = datasets.ADE20KDataset(**dataset_args, split='train')
+    # val_dataset = dataset
+
+    # try:
+    #     data_path = config_dict['dataset']['args']['path']
+    #     data = torch.load(data_path)
+    # except:
+    #     raise ValueError('Unable to load data from {}'.format(data_path))
+    # A = pickle.load(open('ade20k_imagelabels.pkl', 'rb'))
+
+    for name, m in [
+        ('logits', places_model),
+        ('features', places_model_base),
+        # ('imagenet', model_base)
+        ]:
+        print("Saving {} for places model".format(name))
+        with torch.no_grad():
+
+            m = m.to(device)
+
+            for split in ['train', 'val', 'test']:
+                dataset = datasets[split]
+                dataloader = torch.utils.data.DataLoader(
+                    dataset,
+                    shuffle=False,
+                    **dataloader_args)
+                print("Running on {} split".format(split))
+                count = 0; start_time = time.time()
+                img_to_scene = {}
+                img_to_feature = {}
+                image_paths = dataset.image_paths
+                outputs = []
+                if name == 'logits':
+                    scenes = []
+                for image in tqdm(dataloader):
+                    # print(image.shape)
+                    image = image.to(device)
+                    print(image.dtype)
+                    output = m(image)
+                    output = output.squeeze()
+                    if name == 'logits':
+                        h_x = torch.nn.functional.softmax(output, 1)#.data.squeeze()
+
+                        scene = torch.argmax(h_x, dim=1)
+                        # print(scene.shape)
+                        scene = scene.detach().cpu().numpy()
+                        # print("scene shape{}".format(scene.shape))
+                        scenes.append(scene)
+                        # probs, idx = h_x.sort(0, True)
+                    output = output.detach().cpu().numpy()
+                    # print(output.shape)
+                    outputs.append(output)
+                # print(len(scenes))
+                # img_names = data[split]
+                # for img_name in img_names:
+                #     img_path = img_name
+                #     img = Image.open(img_path).convert('RGB')
+                #     img = center_crop(img)
+                #     img = img.to(device=device, dtype = dtype)
+                #     img = img.unsqueeze(0)
+
+                    # sc = m(img)
+                    # img_to_feature[img_path] = sc.detach().cpu().numpy().squeeze()
+
+
+
+                        # scene = int(idx[0].data.cpu().numpy())
+                        # img_to_scene[img_path] = scene
+
+
+                    # count += 1
+                    # if count%1000 == 0:
+                    #     elapsed_time = (time.time() - start_time)/60
+                    #     print('Processed {} images in {:.2f} minutes'.format(count, elapsed_time), flush=True)
+                outputs = np.concatenate(outputs, axis=0)
+
+                assert len(image_paths) == outputs.shape[0]
+                data = {
+                    'paths': image_paths,
+                    name: outputs
+                }
+                if name == 'logits':
+                    scenes = np.concatenate(scenes, axis=0)
+                    data['predictions'] = scenes
+                    name = 'logits_predictions'
+                save_path = os.path.join(save_dir, '{}_{}.pth'.format(split, name))
+                torch.save(data, os.path.join(save_path))
+                print("Saved {} on {} split to {}".format(name, split, save_path))
+                # pickle.dump(img_to_feature, open('ADE20k/{}_{}.pkl'.format(split, name), 'wb+'))
+                # if name=='logits':
+                #     pickle.dump(img_to_scene, open('ADE20k/{}_scene.pkl'.format(split), 'wb+'))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='ImageNet Predictions')
+    parser.add_argument('-c', '--config', type=str, required=True,
+                      help='config file path (default: None)')
+    args = parser.parse_args()
+
+    save_features(
+        config_path=args.config)
