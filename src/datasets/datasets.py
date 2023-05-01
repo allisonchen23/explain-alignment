@@ -7,10 +7,64 @@ from torchvision import datasets
 import sys
 
 import numpy as np
-import PIL as Image
+from PIL import Image
 
 sys.path.insert(0, 'src')
 from utils.utils import load_image, read_lists
+
+
+class ADE20KDataset(Dataset):
+    def __init__(self,
+                 path,
+                 split,
+                 normalize=False,
+                 means=None,
+                 stds=None,
+                 resize=(256, 256),
+                 center_crop=(224, 224)):
+
+        data_dictionary = torch.load(path)
+
+        try:
+            self.image_paths = data_dictionary[split]
+        except:
+            raise ValueError("Split '{}' not supported. Try 'train', 'val', or 'test'".format(split))
+        self.labels = data_dictionary['labels']
+
+        # Store transforms
+        self.transforms = []
+
+        if -1 not in resize:
+            self.transforms.append(transforms.Resize(resize, antialias=True))
+            print("Resizing to {}".format(resize))
+        if -1 not in center_crop:
+            self.transforms.append(transforms.CenterCrop(center_crop))
+            print("Center cropping to {}".format(center_crop))
+        self.transforms.append(transforms.ToTensor())
+        if normalize and means is not None and stds is not None:
+            self.transforms.append(transforms.Normalize(means, stds))
+            print("Normalizing with means of {} and stds of {}".format(means, stds))
+
+        self.transforms = transforms.Compose(self.transforms)
+        # Save whether to return paths
+        # self.return_paths = return_paths
+
+    def __getitem__(self, index):
+        image_path = self.image_paths[index]
+
+        # Load image
+        # image = load_image(image_path, data_format='HWC')
+        image = Image.open(image_path).convert('RGB')
+        image = self.transforms(image)
+
+        # Load label
+        label = self.labels[image_path]
+
+        return image #, label
+
+    def __len__(self):
+        return len(self.image_paths)
+
 
 class ImageDataset(Dataset):
     '''
