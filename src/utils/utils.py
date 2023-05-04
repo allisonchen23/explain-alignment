@@ -28,7 +28,7 @@ def read_lists(filepath):
     return path_list
 
 
-def write_lists(filepath, paths):
+def write_lists(paths, filepath):
     '''
     Stores line delimited paths into file
     Arg(s):
@@ -168,6 +168,7 @@ def ensure_dir(dirname):
     dirname = Path(dirname)
     if not dirname.is_dir():
         dirname.mkdir(parents=True, exist_ok=False)
+        
 
 def get_common_dir_path(paths):
     '''

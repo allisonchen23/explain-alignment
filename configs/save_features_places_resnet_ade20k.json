@@ -4,6 +4,7 @@
     "method": "predict",
     "arch": {
         "type": "",
+        "restore_dir": "checkpoints",
         "args": {
 
         }
