@@ -63,7 +63,7 @@ def save_features(config_path):
     ensure_dir(save_dir)
     arch = 'resnet18'
 
-    model_file = '%s_places365.pth' % arch
+    model_file = os.path.join(config_dict['arch']['restore_dir'],'%s_places365.pth' % arch)
     places_model = torchvision.models.__dict__[arch](num_classes=365)
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -73,19 +73,6 @@ def save_features(config_path):
     places_model_base = torch.nn.Sequential( *list(places_model.children())[:-1])
     places_model_base.eval()
 
-
-    # model = torchvision.models.resnet18(pretrained=True)
-    # model.eval()
-    # model_base = torch.nn.Sequential( *list(model.children())[:-1])
-    # model_base.eval()
-
-    # Create transforms
-    # center_crop = transforms.Compose([
-    #                 transforms.Resize((256, 256)),
-    #                 transforms.CenterCrop(224),
-    #                 transforms.ToTensor(),
-    #                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-
     dataset_args = config_dict['dataset']['args']
     dataloader_args = config_dict['data_loader']['args']
     datasets = {}
@@ -94,20 +81,9 @@ def save_features(config_path):
 
         datasets[split] = dataset
 
-    # train_dataset = datasets.ADE20KDataset(**dataset_args, split='train')
-    # val_dataset = dataset
-
-    # try:
-    #     data_path = config_dict['dataset']['args']['path']
-    #     data = torch.load(data_path)
-    # except:
-    #     raise ValueError('Unable to load data from {}'.format(data_path))
-    # A = pickle.load(open('ade20k_imagelabels.pkl', 'rb'))
-
     for name, m in [
         ('logits', places_model),
-        ('features', places_model_base),
-        # ('imagenet', model_base)
+        ('features', places_model_base)
         ]:
         print("Saving {} for places model".format(name))
         with torch.no_grad():
@@ -121,9 +97,9 @@ def save_features(config_path):
                     shuffle=False,
                     **dataloader_args)
                 print("Running on {} split".format(split))
-                count = 0; start_time = time.time()
-                img_to_scene = {}
-                img_to_feature = {}
+                # count = 0; start_time = time.time()
+                # img_to_scene = {}
+                # img_to_feature = {}
                 image_paths = dataset.image_paths
                 outputs = []
                 if name == 'logits':
@@ -131,7 +107,6 @@ def save_features(config_path):
                 for image in tqdm(dataloader):
                     # print(image.shape)
                     image = image.to(device)
-                    print(image.dtype)
                     output = m(image)
                     output = output.squeeze()
                     if name == 'logits':
@@ -146,28 +121,7 @@ def save_features(config_path):
                     output = output.detach().cpu().numpy()
                     # print(output.shape)
                     outputs.append(output)
-                # print(len(scenes))
-                # img_names = data[split]
-                # for img_name in img_names:
-                #     img_path = img_name
-                #     img = Image.open(img_path).convert('RGB')
-                #     img = center_crop(img)
-                #     img = img.to(device=device, dtype = dtype)
-                #     img = img.unsqueeze(0)
 
-                    # sc = m(img)
-                    # img_to_feature[img_path] = sc.detach().cpu().numpy().squeeze()
-
-
-
-                        # scene = int(idx[0].data.cpu().numpy())
-                        # img_to_scene[img_path] = scene
-
-
-                    # count += 1
-                    # if count%1000 == 0:
-                    #     elapsed_time = (time.time() - start_time)/60
-                    #     print('Processed {} images in {:.2f} minutes'.format(count, elapsed_time), flush=True)
                 outputs = np.concatenate(outputs, axis=0)
 
                 assert len(image_paths) == outputs.shape[0]
@@ -177,9 +131,12 @@ def save_features(config_path):
                 }
                 if name == 'logits':
                     scenes = np.concatenate(scenes, axis=0)
+
                     data['predictions'] = scenes
-                    name = 'logits_predictions'
-                save_path = os.path.join(save_dir, '{}_{}.pth'.format(split, name))
+                    save_name = 'logits_predictions'
+                else:
+                    save_name = name
+                save_path = os.path.join(save_dir, '{}_{}.pth'.format(split, save_name))
                 torch.save(data, os.path.join(save_path))
                 print("Saved {} on {} split to {}".format(name, split, save_path))
                 # pickle.dump(img_to_feature, open('ADE20k/{}_{}.pkl'.format(split, name), 'wb+'))
