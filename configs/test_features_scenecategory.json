@@ -1,0 +1,50 @@
+{
+    "name": "PlacesCategoryClassification",
+    "n_gpu": 1,
+    "method": "test",
+    "arch": {
+        "type": "linear",
+        "restore_path": "saved/PlacesCategoryClassification/0510_102912/models/model_best.pth",
+        "args": {
+
+        }
+    },
+    "paths": {
+        "data_path": "data/places365_categories/places365_imagelabels.pth",
+        "features_path": "saved/ADE20K/0501_105640/{}_features.pth",
+        "split": "train"
+    },
+    "data_loader": {
+        "args":{
+            "batch_size": 128,
+            "num_workers": 8
+        }
+    },
+    "loss": "cross_entropy",
+    "metrics": [
+        "accuracy",
+        "precision",
+        "recall"
+    ],
+    "optimizer": {
+        "type": "Adam",
+        "args":{
+            "lr": 1e-3,
+            "weight_decay": 0,
+            "amsgrad": false
+        }
+    },
+    "trainer": {
+        "epochs": 30,
+
+        "save_dir": "saved",
+        "save_period": 1,
+        "verbosity": 2,
+
+        "monitor": "min val_loss",
+        "early_stop": 10,
+
+        "tensorboard": true
+    },
+    "save_dir": "saved/PlacesCategoryClassification/0510_102912/ADE20K_predictions"
+}

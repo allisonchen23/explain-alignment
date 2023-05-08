@@ -59,11 +59,12 @@ def save_features(config_path):
     device, _ = prepare_device(config_dict['n_gpu'])
     dtype = torch.float32
     timestamp = datetime.now().strftime(r'%m%d_%H%M%S')
-    save_dir = os.path.join('saved', 'ADE20K', timestamp)
+    save_dir = os.path.join('saved', config_dict['dataset']['name'], timestamp)
     ensure_dir(save_dir)
-    arch = 'resnet18'
-
-    model_file = os.path.join(config_dict['arch']['restore_dir'],'%s_places365.pth' % arch)
+    # arch = 'resnet18'
+    
+    arch = config_dict['arch']['type']
+    model_file = config_dict['arch']['restore_path']
     places_model = torchvision.models.__dict__[arch](num_classes=365)
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -76,8 +77,15 @@ def save_features(config_path):
     dataset_args = config_dict['dataset']['args']
     dataloader_args = config_dict['data_loader']['args']
     datasets = {}
-    for split in ['train', 'val', 'test']:
-        dataset = datasets_module.ADE20KDataset(**dataset_args, split=split)
+
+    # Obtain names of splits
+    if 'splits' in config_dict['dataset']:
+        splits = config_dict['dataset']['splits']
+    else:
+        splits = ['train', 'val', 'test']
+
+    for split in splits:
+        dataset = datasets_module.ImageDataset(**dataset_args, split=split)
 
         datasets[split] = dataset
 
@@ -90,7 +98,7 @@ def save_features(config_path):
 
             m = m.to(device)
 
-            for split in ['train', 'val', 'test']:
+            for split in splits:
                 dataset = datasets[split]
                 dataloader = torch.utils.data.DataLoader(
                     dataset,
@@ -105,7 +113,6 @@ def save_features(config_path):
                 if name == 'logits':
                     scenes = []
                 for image in tqdm(dataloader):
-                    # print(image.shape)
                     image = image.to(device)
                     output = m(image)
                     output = output.squeeze()
