@@ -64,3 +64,17 @@ def get_class_category_dict():
     for s in sceneidx_to_group:
         new_sceneidx_to_group[s] = sceneidx_to_group[s][0]
     return new_sceneidx_to_group
+
+def get_category_class_dict():
+    '''
+    Map each category to a list of class idxs
+    '''
+    sceneidx_to_group = get_class_category_dict()
+    category_class_dict = {}
+    for scene_idx, category_idx in sceneidx_to_group.items():
+        if category_idx in category_class_dict:
+            category_class_dict[category_idx].append(scene_idx)
+        else:
+            category_class_dict[category_idx] = [scene_idx]
+            
+    return category_class_dict
