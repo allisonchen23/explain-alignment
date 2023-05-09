@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 sys.path.insert(0, 'src')
 from utils.utils import ensure_dir
+from util
 
 BRODEN_SUBSETS = ['ade20k', 'dtd', 'pascal']
 
@@ -21,7 +22,13 @@ def save_broden_subset(subset_name: str,
 
     # Check valid subset name
     assert subset_name in BRODEN_SUBSETS, "Subset '{}' not found in available subsets: {}".format(subset_name, BRODEN_SUBSETS)
-    print("Saving {} subset of Broden dataset from '{}' to '{}'".format(
+
+    save_path = os.path.join(save_dir, '{}_imagelabels.pth'.format(subset_name))
+    if os.path.exists(save_path):
+        print("Path {} already exists. Aborting.".format(save_path))
+        return
+
+    print("Will save {} subset of Broden dataset from '{}' to '{}'".format(
         subset_name,
         broden_path,
         save_dir
@@ -33,16 +40,27 @@ def save_broden_subset(subset_name: str,
     # Define variables
     images = []
     labels = {}
+    scene_labels = {}
 
+    n_images_broden = len(image_df)
+    # Only save rows where image is from subset
+    image_df = image_df[image_df['image'].str.contains(subset_name)]
+    # Only save rows with an annotation for scene
+    image_df = image_df[~image_df['scene'].isna()]
+    n_images = len(image_df)
+    print("Filtered from {} to {} images from {} with annotations".format(
+        n_images_broden, n_images, subset_name))
     # Iterate through all images in index.csv
     for idx in tqdm(image_df.index):
-        if (image_df['image'][idx]).split('/')[0] != subset_name:
-            continue
+        # if (image_df['image'][idx]).split('/')[0] != subset_name or pd.isna(pd.isna(image_df['scene'][idx])):
+        #     continue
         full_image_name = os.path.join(broden_path, 'images/{}'.format(image_df['image'][idx]))
         #print(idx)
         images.append(full_image_name)
         labels[full_image_name] = []
+        scene_labels[full_image_name] = image_df['scene'][idx]
 
+        # Add part and object annotations
         for cat in ['object', 'part']:
             if image_df[cat].notnull()[idx]:
                 for x in image_df[cat][idx].split(';'):
@@ -58,19 +76,21 @@ def save_broden_subset(subset_name: str,
     images_train, images_valtest = train_test_split(images, test_size=0.4, random_state=42)
     images_val, images_test = train_test_split(images_valtest, test_size=0.5, random_state=42)
 
-    save_path = os.path.join(save_dir, '{}_imagelabels.pth'.format(subset_name))
+    # Sanity checks
+    # n_images = len(images)
+    assert len(images) == n_images
+    assert len(labels) == n_images
+    assert len(scene_labels) == n_images
+
     data = {
             'train': images_train,
-            'val':images_val,
-            'test':images_test,
-            'labels':labels}
+            'val': images_val,
+            'test': images_test,
+            'labels': labels,
+            'scene_labels': scene_labels}
     torch.save(data, save_path)
-    # with open(save_path, 'wb+') as handle:
-    #     pickle.dump({
-    #         'train': images_train,
-    #         'val':images_val,
-    #         'test':images_test,
-    #         'labels':labels}, handle)
+    print("Saved data from {} samples to {}".format(n_images, save_path))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -81,8 +101,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if os.path.exists(args.save_dir):
-        raise ValueError("Path {} already exists. Aborting".format(args.save_dir))
+    # if os.path.exists(args.save_dir):
+    #     raise ValueError("Path {} already exists. Aborting".format(args.save_dir))
     ensure_dir(args.save_dir)
 
     save_broden_subset(
