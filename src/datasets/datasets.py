@@ -13,10 +13,12 @@ sys.path.insert(0, 'src')
 from utils.utils import load_image, read_lists
 
 
-class ADE20KDataset(Dataset):
+class ImageDataset(Dataset):
     def __init__(self,
                  path,
                  split,
+                 label_key,
+                 return_label=False,
                  normalize=False,
                  means=None,
                  stds=None,
@@ -25,11 +27,22 @@ class ADE20KDataset(Dataset):
 
         data_dictionary = torch.load(path)
 
+        # Obtain image paths
         try:
             self.image_paths = data_dictionary[split]
         except:
             raise ValueError("Split '{}' not supported. Try 'train', 'val', or 'test'".format(split))
-        self.labels = data_dictionary['labels']
+
+        # Obtain labels
+        self.return_label = return_label
+        if self.return_label:
+            try:
+                self.labels = data_dictionary[label_key]
+            except:
+                raise ValueError("Label key '{}' not found in data dictionary. Try one of {}".format(
+                    label_key, list(data_dictionary.keys())
+                ))
+
 
         # Store transforms
         self.transforms = []
@@ -57,159 +70,162 @@ class ADE20KDataset(Dataset):
         image = Image.open(image_path).convert('RGB')
         image = self.transforms(image)
 
-        # Load label
-        label = self.labels[image_path]
 
-        return image #, label
+        if not self.return_label:
+            return image
+        else:
+            # Load label
+            label = self.labels[image_path]
+            return image, label
 
     def __len__(self):
         return len(self.image_paths)
 
 
-class ImageDataset(Dataset):
-    '''
-    Dataset for Images given path to list of paths to images and labels
+# class ImageDataset(Dataset):
+#     '''
+#     Dataset for Images given path to list of paths to images and labels
 
-    Arg(s):
-        root : str
-            path from CWD to root of data storage
-        image_paths_path : str
-            path to list of relative paths where images are stored
-        labels_path : str
-            path to file where labels are stored
-        return_paths : bool
-            whether data loader should return paths or not
-        normalize : bool
-            whether to normalize or not
-        means : list[float]
-            mean values for RGB channels
-        stds : list[float]
-            std values for RGB channels
-    '''
+#     Arg(s):
+#         root : str
+#             path from CWD to root of data storage
+#         image_paths_path : str
+#             path to list of relative paths where images are stored
+#         labels_path : str
+#             path to file where labels are stored
+#         return_paths : bool
+#             whether data loader should return paths or not
+#         normalize : bool
+#             whether to normalize or not
+#         means : list[float]
+#             mean values for RGB channels
+#         stds : list[float]
+#             std values for RGB channels
+#     '''
 
-    def __init__(self,
-                 root,
-                 image_paths_path,
-                 labels_path,
-                 return_paths=True,
-                 normalize=False,
-                 means=None,
-                 stds=None):
+#     def __init__(self,
+#                  root,
+#                  image_paths_path,
+#                  labels_path,
+#                  return_paths=True,
+#                  normalize=False,
+#                  means=None,
+#                  stds=None):
 
-        self.root = root
-        self.image_paths = read_lists(image_paths_path)
-        self.labels = read_lists(labels_path)
-        self.n_sample = len(self.image_paths)
-        self.return_paths = return_paths
+#         self.root = root
+#         self.image_paths = read_lists(image_paths_path)
+#         self.labels = read_lists(labels_path)
+#         self.n_sample = len(self.image_paths)
+#         self.return_paths = return_paths
 
-        # Transforms
-        self.transforms = [transforms.ToTensor()]
-        if normalize:
-            assert means is not None and stds is not None
-            self.transforms.append(transforms.Normalize(mean=means, std=stds))
-        # PyTorch will already switch axes to C x H x W :')
-        self.transforms = transforms.Compose(self.transforms)
-
-
-    def __getitem__(self, index):
-        # Obtain path, load image, apply transforms
-        image_path = os.path.join(self.root, self.image_paths[index])
-        image = load_image(image_path, data_format="HWC")
-        image = self.transforms(image)
-
-        # Obtain label
-        label = int(self.labels[index])
-
-        # Return data
-        if self.return_paths:
-            return image, label, image_path
-        else:
-            return image, label
+#         # Transforms
+#         self.transforms = [transforms.ToTensor()]
+#         if normalize:
+#             assert means is not None and stds is not None
+#             self.transforms.append(transforms.Normalize(mean=means, std=stds))
+#         # PyTorch will already switch axes to C x H x W :')
+#         self.transforms = transforms.Compose(self.transforms)
 
 
-    def __len__(self):
-        return self.n_sample
+#     def __getitem__(self, index):
+#         # Obtain path, load image, apply transforms
+#         image_path = os.path.join(self.root, self.image_paths[index])
+#         image = load_image(image_path, data_format="HWC")
+#         image = self.transforms(image)
+
+#         # Obtain label
+#         label = int(self.labels[index])
+
+#         # Return data
+#         if self.return_paths:
+#             return image, label, image_path
+#         else:
+#             return image, label
 
 
-class ColoredMNIST(datasets.VisionDataset):
-    """
-    Colored MNIST dataset for testing
-    Args:
-        root : str
-            Root directory of dataset where ``<dataset_type>/*.pt`` will exist.
-        dataset_type : str
-            Directory in root that containts *.pt
-        split : str
-            Name of .pt files: training or test
-        padding : int
-            Amount of edge padding on all sides
-        target_transform : (callable, optional)
-            A function/transform that takes in the target and transforms it.
-    """
-    def __init__(self,
-                 root: str,
-                 dataset_type: str,
-                 split: str,
-                 padding: int=0,
-                 normalize: bool=False,
-                 means: list=None,
-                 stds: list=None,
-                 target_transform=None):
-        # Create list of transformations
-        transform = []
-        if padding > 0:
-            transform.append(transforms.Pad(padding, padding_mode='edge'))
-        if normalize:
-            assert means is not None and stds is not None, "Cannot normalize without means and stds"
-            transform.append(transforms.Normalize(mean=means, std=stds))
-        if len(transform) > 0:
-            transform = transforms.Compose(transform)
-        else:
-            transform = None
+#     def __len__(self):
+#         return self.n_sample
 
-        super(ColoredMNIST, self).__init__(root, transform=transform,
-                                    target_transform=target_transform)
 
-        # Assert valid directory and split
-        self.dataset_dir = os.path.join(root, dataset_type)
-        assert os.path.isdir(self.dataset_dir), "Directory '{}' does not exist.".format(self.dataset_dir)
-        valid_splits = ['training', 'test', 'test_hold_out_50']
-        if split not in valid_splits :
-            raise ValueError("Data split '{}' not supported. Choose from {}".format(split, valid_splits))
+# class ColoredMNIST(datasets.VisionDataset):
+#     """
+#     Colored MNIST dataset for testing
+#     Args:
+#         root : str
+#             Root directory of dataset where ``<dataset_type>/*.pt`` will exist.
+#         dataset_type : str
+#             Directory in root that containts *.pt
+#         split : str
+#             Name of .pt files: training or test
+#         padding : int
+#             Amount of edge padding on all sides
+#         target_transform : (callable, optional)
+#             A function/transform that takes in the target and transforms it.
+#     """
+#     def __init__(self,
+#                  root: str,
+#                  dataset_type: str,
+#                  split: str,
+#                  padding: int=0,
+#                  normalize: bool=False,
+#                  means: list=None,
+#                  stds: list=None,
+#                  target_transform=None):
+#         # Create list of transformations
+#         transform = []
+#         if padding > 0:
+#             transform.append(transforms.Pad(padding, padding_mode='edge'))
+#         if normalize:
+#             assert means is not None and stds is not None, "Cannot normalize without means and stds"
+#             transform.append(transforms.Normalize(mean=means, std=stds))
+#         if len(transform) > 0:
+#             transform = transforms.Compose(transform)
+#         else:
+#             transform = None
 
-        # Load images and labels
-        data_path = os.path.join(self.dataset_dir, "{}.pt".format(split))
-        self.data = torch.load(data_path)
+#         super(ColoredMNIST, self).__init__(root, transform=transform,
+#                                     target_transform=target_transform)
 
-        self.images = self.data['images']
-        self.labels = self.data['labels']
-        self.color_idx = self.data['colors']
-        assert len(self.images) == len(self.labels), "Images and labels have different number of samples ({} and {} respectively)".format(
-            len(self.images), len(self.labels))
+#         # Assert valid directory and split
+#         self.dataset_dir = os.path.join(root, dataset_type)
+#         assert os.path.isdir(self.dataset_dir), "Directory '{}' does not exist.".format(self.dataset_dir)
+#         valid_splits = ['training', 'test', 'test_hold_out_50']
+#         if split not in valid_splits :
+#             raise ValueError("Data split '{}' not supported. Choose from {}".format(split, valid_splits))
 
-    def __getitem__(self, index):
-        """
-        Args:
-            index (int): Index
-        Returns:
-            tuple: (image, target) where target is index of the target class.
-        """
-        # Obtain image and label
-        img = self.images[index]
-        if not torch.is_tensor(img):
-            img = torch.from_numpy(img)
+#         # Load images and labels
+#         data_path = os.path.join(self.dataset_dir, "{}.pt".format(split))
+#         self.data = torch.load(data_path)
 
-        target = self.labels[index]
+#         self.images = self.data['images']
+#         self.labels = self.data['labels']
+#         self.color_idx = self.data['colors']
+#         assert len(self.images) == len(self.labels), "Images and labels have different number of samples ({} and {} respectively)".format(
+#             len(self.images), len(self.labels))
 
-        # Apply transformations (if applicable)
-        if self.transform is not None:
-            # img = Image.fromarray(np.unit8(img))
-            img = self.transform(img)
+#     def __getitem__(self, index):
+#         """
+#         Args:
+#             index (int): Index
+#         Returns:
+#             tuple: (image, target) where target is index of the target class.
+#         """
+#         # Obtain image and label
+#         img = self.images[index]
+#         if not torch.is_tensor(img):
+#             img = torch.from_numpy(img)
 
-        if self.target_transform is not None:
-            target = self.target_transform(target)
+#         target = self.labels[index]
 
-        return img, target
+#         # Apply transformations (if applicable)
+#         if self.transform is not None:
+#             # img = Image.fromarray(np.unit8(img))
+#             img = self.transform(img)
 
-    def __len__(self):
-        return len(self.images)
+#         if self.target_transform is not None:
+#             target = self.target_transform(target)
+
+#         return img, target
+
+#     def __len__(self):
+#         return len(self.images)
