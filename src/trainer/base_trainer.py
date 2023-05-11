@@ -129,8 +129,19 @@ class BaseTrainer:
             # torch.save(state, filename)
             # self.model.save_model(save_path)
             # self.logger.info("Saving checkpoint from epoch {} to {} ...".format(epoch, save_path))
-
-        self.model.save_model(save_path)
+        try:
+            self.model.save_model(save_path)
+        except:
+            arch = type(self.model).__name__
+            state = {
+                'arch': arch,
+                'epoch': epoch,
+                'state_dict': self.model.state_dict(),
+                'optimizer': self.optimizer.state_dict(),
+                'monitor_best': self.mnt_best,
+                'config': self.config
+            }
+            torch.save(state, save_path)
         self.logger.info("Saving checkpoint: {} ...".format(save_path))
         if save_best:
             best_path = str(self.checkpoint_dir / 'model_best.pth')

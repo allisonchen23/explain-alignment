@@ -1,7 +1,7 @@
 {
-    "name": "",
+    "name": "PlacesCategoryClassification",
     "n_gpu": 1,
-    "method": "predict",
+    "method": "train",
     "arch": {
         "type": "resnet18",
         "restore_path": "checkpoints/resnet18_places365.pth",
@@ -9,20 +9,10 @@
 
         }
     },
-    "dataset": {
-        "type": "ImageDataset",
-        "name": "Places365_val",
-        "args": {
-            "path": "data/places365_categories/places365_imagelabels.pth",
-            "label_key": "scene_category_labels",
-            "return_label": false,
-            "normalize": true,
-            "means": [0.485, 0.456, 0.406],
-            "stds": [0.229, 0.224, 0.225],
-            "resize": [-1, -1],
-            "center_crop": [224, 224]
-        },
-        "splits": ["val_train", "val_val"]
+    "paths": {
+        "data_path": "data/places365_categories/places365_imagelabels.pth",
+        "train_features_path": "saved/Places365_val/0509_161413/val_train_features.pth",
+        "val_features_path": "saved/Places365_val/0509_161413/val_val_features.pth"
     },
     "data_loader": {
         "args":{
@@ -30,6 +20,12 @@
             "num_workers": 8
         }
     },
+    "loss": "cross_entropy",
+    "metrics": [
+        "accuracy",
+        "precision",
+        "recall"
+    ],
     "optimizer": {
         "type": "Adam",
         "args":{
@@ -41,7 +37,7 @@
     "trainer": {
         "epochs": 30,
 
-        "save_dir": "saved/places_resnet_places365val_features/",
+        "save_dir": "saved",
         "save_period": 1,
         "verbosity": 2,
 

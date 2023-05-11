@@ -62,9 +62,8 @@ def save_features(config_path):
     save_dir = os.path.join('saved', config_dict['dataset']['name'], timestamp)
     ensure_dir(save_dir)
     # arch = 'resnet18'
+    
     arch = config_dict['arch']['type']
-
-    # model_file = os.path.join(config_dict['arch']['restore_dir'],'%s_places365.pth' % arch)
     model_file = config_dict['arch']['restore_path']
     places_model = torchvision.models.__dict__[arch](num_classes=365)
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)

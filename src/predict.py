@@ -8,9 +8,9 @@ import model.metric as module_metric
 
 def predict(data_loader,
             model,
-            loss_fn,
             metric_fns,
             device,
+            loss_fn=None,
             output_save_path=None,
             log_save_path=None):
     '''
@@ -62,9 +62,11 @@ def predict(data_loader,
     targets = torch.cat(targets, dim=0)
 
     # Calculate loss
-    loss = loss_fn(outputs, targets).item()
+    if loss_fn is not None:
+        loss = loss_fn(outputs, targets).item()
+        log = {'loss': loss}
+    
     n_samples = len(data_loader.sampler)
-    log = {'loss': loss}
 
     # Calculate predictions based on argmax
     predictions = torch.argmax(outputs, dim=1)
