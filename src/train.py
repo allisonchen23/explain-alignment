@@ -32,33 +32,44 @@ def main(config, train_data_loader=None, val_data_loader=None, seed=0):
         data_loader_args = config.config['data_loader']['args']
 
         # Create train data loader
-        dataset = config.init_obj('dataset', module_data)
-        train_split = config.config['dataset']['train_split']
-        assert train_split > 0 and train_split < 1, "Invalid value for train_split: {}. Must be [0, 1]".format(train_split)
-        train_dataset, val_dataset = torch.utils.data.random_split(
-            dataset,
-            [train_split, 1 - train_split],
-            generator=torch.Generator().manual_seed(seed))
+        if 'train_split' in config.config['dataset']:
+            dataset = config.init_obj('dataset', module_data)
+            train_split = config.config['dataset']['train_split']
+            assert train_split > 0 and train_split < 1, "Invalid value for train_split: {}. Must be [0, 1]".format(train_split)
+            train_dataset, val_dataset = torch.utils.data.random_split(
+                dataset,
+                [train_split, 1 - train_split],
+                generator=torch.Generator().manual_seed(seed))
 
+            logger.info("Dataset path(s): \n\t{}".format(dataset.root))
+        # Create train and val datasets separately
+        elif config.config['dataset']['type'] == 'KDDataset':
+            train_dataset = config.init_obj('dataset', module_data, split='train')
+            val_dataset = config.init_obj('dataset', module_data, split='val')
+
+            train_split = len(train_dataset) / (len(train_dataset) + len(val_dataset))
+            logger.info("Dataset path(s): \n\t{}\n\t{}".format(
+                train_dataset.input_features_path,
+                train_dataset.labels_path))
+        else:
+            raise ValueError("Dataset type '{}' not supported".format(config.config['dataset']['type']))
         train_data_loader = torch.utils.data.DataLoader(
             train_dataset,
             shuffle=True,
             **data_loader_args
         )
-
         val_data_loader = torch.utils.data.DataLoader(
             val_dataset,
             shuffle=False,
             **data_loader_args
         )
 
-        logger.info("Created train ({} images) and val ({} images) dataloaders with {}/{} split from {}.".format(
-            len(train_dataset),
-            len(val_dataset),
-            train_split,
-            1 - train_split,
-            dataset.root
-        ))
+        logger.info("Created train ({} images) and val ({} images) datasets with {}/{} split.".format(
+                len(train_dataset),
+                len(val_dataset),
+                train_split,
+                1 - train_split,
+            ))
 
     # build model architecture, then print to console
     model = config.init_obj('arch', module_arch)
@@ -98,6 +109,8 @@ def main(config, train_data_loader=None, val_data_loader=None, seed=0):
                       lr_scheduler=lr_scheduler)
 
     trainer.train()
+    
+    return model
 
 
 if __name__ == '__main__':

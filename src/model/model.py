@@ -9,6 +9,58 @@ from collections import OrderedDict
 sys.path.insert(0, 'src')
 from model.base_model import BaseModel
 
+class LinearLayers(BaseModel):
+    def __init__(self,
+                 n_in_features,
+                 n_classes,
+                 n_hidden_features=[],
+                 bias=True,
+                 checkpoint_path="",
+                 device=None):
+        super().__init__()
+
+        if n_hidden_features is None:
+            n_hidden_features = []
+
+        in_features = [n_in_features] + n_hidden_features
+        out_features = n_hidden_features + [n_classes]
+        assert len(in_features) == len(out_features)
+
+        layers = []
+        for n_in, n_out in zip(in_features, out_features):
+            layers.append(torch.nn.Linear(
+                n_in,
+                n_out,
+                bias=bias))
+
+        self.layers = torch.nn.Sequential(*layers)
+
+        # Initialize base (calculates params)
+        self._initialize_base(
+            checkpoint_path=checkpoint_path,
+            device=device)
+
+    def forward(self, x):
+        return self.layers(x)
+
+    def save_model(self, save_path, optimizer=None):
+        state = {
+            'arch': type(self).__name__,
+            'state_dict': self.state_dict()
+        }
+        if optimizer is not None:
+            state['optimizer'] = optimizer.state_dict()
+        torch.save(state, save_path)
+
+    def load_model(self, restore_path, optimizer=None):
+        state = torch.load(restore_path)
+        self.load_state_dict(state['state_dict'])
+        if optimizer is not None and 'optimizer' in state:
+            optimizer.load_state_dict(state['optimizer'])
+            return optimizer
+        else:
+            return None
+
 
 class LeNetModel(BaseModel):
     def __init__(self,

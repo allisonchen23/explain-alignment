@@ -12,6 +12,45 @@ from PIL import Image
 sys.path.insert(0, 'src')
 from utils.utils import load_image, read_lists
 
+class KDDataset(Dataset):
+    def __init__(self,
+                 input_features_path,
+                 labels_path,
+                 split,
+                 out_type,
+                 dtype='float32'):
+        available_splits = ['train', 'val', 'test']
+        available_out_types = ['outputs', 'probabilities', 'predictions']
+        assert split in available_splits, "Received invalid split '{}'. Must be one of {}".format(split, available_splits)
+        assert out_type in available_out_types, \
+            "Received invalid out_type '{}'. Must be one of {}".format(out_type, available_out_types)
+
+        # Save in features
+        input_features = torch.load(input_features_path)
+        self.input_features = input_features[split].astype(dtype)
+        if not torch.is_tensor(self.input_features):
+            self.input_features = torch.from_numpy(self.input_features)
+
+        # Save labels
+        labels = torch.load(labels_path)
+        self.labels = labels[split][out_type].astype(dtype)
+        if not torch.is_tensor(self.labels):
+            self.labels = torch.from_numpy(self.labels)
+        # Metadata
+        self.n_samples = len(self.labels)
+        assert len(self.input_features) == self.n_samples
+        self.input_features_path = input_features_path
+        self.labels_path = labels_path
+        self.dtype = dtype
+
+    def __getitem__(self, index):
+        features = self.input_features[index] #.to(self.dtype)
+        label = self.labels[index] #.to(self.dtype)
+
+        return features, label
+
+    def __len__(self):
+        return self.n_samples
 
 class ImageDataset(Dataset):
     def __init__(self,
