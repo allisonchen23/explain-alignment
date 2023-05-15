@@ -11,6 +11,7 @@ def get_one_hot_attributes(data, paths, n_attr, splits=['train', 'val', 'test'])
     #     attributes[split] = []
 
     for split in splits:
+        attributes[split] = []
         split_paths = paths[split]
         print("Processing attributes for {} split".format(split))
         for path in tqdm(split_paths):
