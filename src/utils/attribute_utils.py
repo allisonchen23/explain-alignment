@@ -96,14 +96,13 @@ def hyperparam_search_l1(train_features, train_labels, val_features, val_labels,
     return best_clf
 
 def hyperparam_search(train_features,
-                                  train_labels,
-                                  val_features,
-                                  val_labels,
-                                  regularization,
-                                  solver,
-                                  scaler=None,
-                                  Cs = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 3, 5],
-                                  log_path=None):
+                      train_labels,
+                      val_features,
+                      val_labels,
+                      scaler=None,
+                      Cs = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 3, 5],
+                      log_path=None,
+                      logistic_regression_args={}):
     best_clf = None
     best_acc = 0
 
@@ -113,7 +112,7 @@ def hyperparam_search(train_features,
         train_features = scaler.transform(train_features)
         val_features = scaler.transform(val_features)
     for c in Cs:
-        clf = LogisticRegression(solver=solver, C=c, penalty=regularization)
+        clf = LogisticRegression(C=c, **logistic_regression_args)
         clf.fit(train_features, train_labels)
         score = clf.score(val_features, val_labels)
         if score>best_acc:
