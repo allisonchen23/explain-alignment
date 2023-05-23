@@ -70,6 +70,10 @@ def predict(data_loader,
 
     # Calculate predictions based on argmax
     predictions = torch.argmax(outputs, dim=1)
+    # Targets might be soft labels, if so use argmax to obtain top-1 label
+    if len(targets.shape) == 2:
+        targets = torch.argmax(targets, dim=1)
+    assert targets.shape == predictions.shape
 
     # Move predictions and target to cpu and convert to numpy to calculate metrics
     predictions = predictions.cpu().numpy()

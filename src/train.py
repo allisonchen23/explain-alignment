@@ -109,6 +109,8 @@ def main(config, train_data_loader=None, val_data_loader=None, seed=0):
                       lr_scheduler=lr_scheduler)
 
     trainer.train()
+    
+    return model
 
 
 if __name__ == '__main__':
