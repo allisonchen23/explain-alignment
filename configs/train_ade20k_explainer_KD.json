@@ -16,7 +16,8 @@
         "args": {
             "input_features_path": "data/ade20k/frequency_filtered_one_hot_attributes.pth",
             "labels_path": "saved/PlacesCategoryClassification/0510_102912/ADE20K_predictions/saga/outputs_predictions.pth",
-            "out_type": "probabilities"
+            "out_type": "probabilities",
+            "dtype": "float32"
         }
     },
     "data_loader": {
@@ -45,14 +46,14 @@
     "lr_scheduler": {
         "type": "StepLR",
         "args": {
-            "step_size": 50,
+            "step_size": 1000,
             "gamma": 1
         }
     },
     "trainer": {
-        "epochs": 30,
+        "epochs": 100,
 
-        "save_dir": "saved/PlacesCategoryClassification/0510_102912/ADE20K_predictions/saga/KD_baseline_explainer/debug",
+        "save_dir": "saved/PlacesCategoryClassification/0510_102912/ADE20K_predictions/saga/KD_baseline_explainer/hparam_search",
         "save_period": 1,
         "verbosity": 2,
 

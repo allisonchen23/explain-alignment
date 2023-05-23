@@ -40,13 +40,13 @@ def main(config, train_data_loader=None, val_data_loader=None, seed=0):
                 dataset,
                 [train_split, 1 - train_split],
                 generator=torch.Generator().manual_seed(seed))
-            
+
             logger.info("Dataset path(s): \n\t{}".format(dataset.root))
         # Create train and val datasets separately
         elif config.config['dataset']['type'] == 'KDDataset':
             train_dataset = config.init_obj('dataset', module_data, split='train')
             val_dataset = config.init_obj('dataset', module_data, split='val')
-            
+
             train_split = len(train_dataset) / (len(train_dataset) + len(val_dataset))
             logger.info("Dataset path(s): \n\t{}\n\t{}".format(
                 train_dataset.input_features_path,
@@ -58,7 +58,6 @@ def main(config, train_data_loader=None, val_data_loader=None, seed=0):
             shuffle=True,
             **data_loader_args
         )
-
         val_data_loader = torch.utils.data.DataLoader(
             val_dataset,
             shuffle=False,

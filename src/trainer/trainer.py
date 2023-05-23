@@ -125,6 +125,9 @@ class Trainer(BaseTrainer):
 
         val_predictions = np.concatenate(val_predictions, axis=0)
         val_targets = np.concatenate(val_targets, axis=0)
+        if len(val_targets.shape) == 2:
+            val_targets = np.argmax(val_targets, axis=1)
+            assert val_targets.shape == val_predictions.shape
 
         # Calculate metrics for validation
         val_log = module_metric.compute_metrics(
