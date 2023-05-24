@@ -5,7 +5,7 @@ from torchvision import transforms
 from torch.utils.data import Dataset
 from torchvision import datasets
 import sys
-
+import pickle
 import numpy as np
 from PIL import Image
 
@@ -33,12 +33,17 @@ class KDDataset(Dataset):
 
         # Save labels
         labels = torch.load(labels_path)
-        self.labels = labels[split][out_type].astype(dtype)
+        self.labels = labels[split][out_type]
+        # If soft labels, make sure appropriate data type
+        if len(self.labels.shape) == 2:
+            self.labels = self.labels.astype(dtype)
+
         if not torch.is_tensor(self.labels):
             self.labels = torch.from_numpy(self.labels)
         # Metadata
         self.n_samples = len(self.labels)
-        assert len(self.input_features) == self.n_samples
+        assert len(self.input_features) == self.n_samples, \
+            "Received unequal lengths for input features ({}) and labels ({})".format(len(self.input_features), self.n_samples)
         self.input_features_path = input_features_path
         self.labels_path = labels_path
         self.dtype = dtype
@@ -52,6 +57,52 @@ class KDDataset(Dataset):
     def __len__(self):
         return self.n_samples
 
+class CIFAR10TorchDataset(Dataset):
+    def __init__(self,
+                 cifar_dir,
+                 split,
+                 to_tensor=True,
+                 normalize=True,
+                 means=[0.4914, 0.4822, 0.4465],
+                 stds=[0.2471, 0.2435, 0.2616]):
+        
+        images = []
+        labels = []
+        assert split in ['train', 'test'], "Invalid split '{}'. Must be 'train' or 'test'".format(split)
+        if split == 'train':
+            files = ['data_batch_{}'.format(i) for i in range(1,6)]
+        else:
+            files = ['test_batch']
+            
+        for file in files:
+            path = os.path.join(cifar_dir, file)
+            data = pickle.load(open(path, 'rb'))
+            cur_images = data['data']
+            cur_images = np.reshape(cur_images, (-1, 3, 32, 32))
+            images.append(cur_images)
+            
+            cur_labels = np.array(data['labels'])
+            labels.append(cur_labels)
+        
+        self.images = np.concatenate(images, axis=0)
+        self.images = np.transpose(self.images, (0, 2, 3, 1))
+        self.labels = np.concatenate(labels, axis=0)
+        self.n_samples = len(self.labels)
+                
+        # Create transformations
+        self.transforms = [transforms.ToTensor()]  # changes dims H x W x C -> C x H x W and scales to [0, 1]
+        if normalize:
+            self.transforms.append(transforms.Normalize(means, stds))
+        self.transforms = transforms.Compose(self.transforms)
+    
+    def __getitem__(self, idx):
+        image = self.transforms(self.images[idx])
+        label = self.labels[idx]
+        return image, label
+
+    def __len__(self):
+        return self.n_samples
+    
 class ImageDataset(Dataset):
     def __init__(self,
                  path,

@@ -2,17 +2,19 @@ import argparse
 import collections
 import torch
 import numpy as np
-import sys
+import os, sys
 sys.path.insert(0, 'src')
 # import data_loader.data_loaders as module_data
 import datasets.datasets as module_data
 import model.loss as module_loss
 import model.metric as module_metric
 import model.model as module_arch
-from parse_config import ConfigParser
 from trainer.trainer import Trainer
 from utils.utils import read_lists
 from utils.model_utils import prepare_device
+
+from parse_config import ConfigParser
+from predict import predict
 
 
 def main(config, train_data_loader=None, val_data_loader=None, seed=0):
@@ -43,14 +45,16 @@ def main(config, train_data_loader=None, val_data_loader=None, seed=0):
 
             logger.info("Dataset path(s): \n\t{}".format(dataset.root))
         # Create train and val datasets separately
-        elif config.config['dataset']['type'] == 'KDDataset':
+        elif config.config['dataset']['type'] in ['KDDataset', 'CIFAR10TorchDataset']:
             train_dataset = config.init_obj('dataset', module_data, split='train')
-            val_dataset = config.init_obj('dataset', module_data, split='val')
-
+            try:
+                val_dataset = config.init_obj('dataset', module_data, split='val')
+            except:
+                val_dataset = config.init_obj('dataset', module_data, split='test')
             train_split = len(train_dataset) / (len(train_dataset) + len(val_dataset))
-            logger.info("Dataset path(s): \n\t{}\n\t{}".format(
-                train_dataset.input_features_path,
-                train_dataset.labels_path))
+            # logger.info("Dataset path(s): \n\t{}\n\t{}".format(
+            #     train_dataset.input_features_path,
+            #     train_dataset.labels_path))
         else:
             raise ValueError("Dataset type '{}' not supported".format(config.config['dataset']['type']))
         train_data_loader = torch.utils.data.DataLoader(
@@ -109,6 +113,20 @@ def main(config, train_data_loader=None, val_data_loader=None, seed=0):
                       lr_scheduler=lr_scheduler)
 
     trainer.train()
+    
+    if 'save_val_results' in config.config['trainer'] and \
+    config.config['trainer']['save_val_results']:
+        val_metric_save_path = os.path.join(os.path.dirname(config.save_dir), 'val_metrics.pth')
+        val_outputs_save_path = os.path.join(os.path.dirname(config.save_dir), 'val_outputs.pth')
+        predict(
+            data_loader=val_data_loader,
+            model=model,
+            metric_fns=metrics,
+            device=device,
+            loss_fn=criterion,
+            output_save_path=val_outputs_save_path,
+            log_save_path=val_metric_save_path)
+        print("Saving validation results to {}".format(os.path.dirname(val_metric_save_path)))
     
     return model
 

@@ -1,0 +1,64 @@
+{
+    "name": "",
+    "n_gpu": 1,
+    "method": "train",
+    "arch": {
+        "type": "LinearLayers",
+        "args": {
+            "n_in_features": 75,
+            "n_classes": 10,
+            "n_hidden_features": [],
+            "bias": true,
+            "activation": null
+        }
+    },
+    "dataset": {
+        "type": "KDDataset",
+        "args": {
+            "input_features_path": "saved/cifar10/sift_32_32/75means/histogram_vectors.pth",
+            "labels_path": "saved/cifar10/resnet18/outputs_predictions.pth",
+            "out_type": "probabilities"
+        }
+    },
+    "data_loader": {
+        "args":{
+            "batch_size": 256,
+            "num_workers": 8
+        }
+    },
+    "optimizer": {
+        "type": "SGD",
+        "args":{
+            "lr": 5e-1,
+            "weight_decay": 0
+        }
+    },
+    "loss": "cross_entropy",
+    "metrics": [
+        "accuracy",
+        "per_class_accuracy",
+        "precision",
+        "recall",
+        "f1",
+        "predicted_class_distribution"
+    ],
+    "lr_scheduler": {
+        "type": "StepLR",
+        "args": {
+            "step_size": 25,
+            "gamma": 0.2
+        }
+    },
+    "trainer": {
+        "epochs": 100,
+
+        "save_dir": "saved/cifar10/resnet18/explainer/sift_descriptor_histogram/cifar32_32/soft_labels",
+        "save_period": 1,
+        "verbosity": 2,
+
+        "monitor": "max val_accuracy",
+        "early_stop": 10,
+        "save_val_results": true,
+        "tensorboard": true
+    }
+}
