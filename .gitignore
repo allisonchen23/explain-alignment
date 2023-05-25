@@ -3,6 +3,8 @@ saved/
 checkpoints/
 *.pkl
 *.pth
+external_code/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
