@@ -33,12 +33,17 @@ class KDDataset(Dataset):
 
         # Save labels
         labels = torch.load(labels_path)
-        self.labels = labels[split][out_type].astype(dtype)
+        self.labels = labels[split][out_type]
+        # If soft labels, make sure appropriate data type
+        if len(self.labels.shape) == 2:
+            self.labels = self.labels.astype(dtype)
+
         if not torch.is_tensor(self.labels):
             self.labels = torch.from_numpy(self.labels)
         # Metadata
         self.n_samples = len(self.labels)
-        assert len(self.input_features) == self.n_samples
+        assert len(self.input_features) == self.n_samples, \
+            "Received unequal lengths for input features ({}) and labels ({})".format(len(self.input_features), self.n_samples)
         self.input_features_path = input_features_path
         self.labels_path = labels_path
         self.dtype = dtype

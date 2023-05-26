@@ -15,6 +15,7 @@ class LinearLayers(BaseModel):
                  n_classes,
                  n_hidden_features=[],
                  bias=True,
+                 activation=None,
                  checkpoint_path="",
                  device=None):
         super().__init__()
@@ -26,12 +27,21 @@ class LinearLayers(BaseModel):
         out_features = n_hidden_features + [n_classes]
         assert len(in_features) == len(out_features)
 
+        # Set activation function
+        if activation is None or activation == "":
+            self.activation_fn = None
+        elif activation == 'relu':
+            self.activation_fn = torch.nn.ReLU()
+        else:
+            raise ValueError("Activation '{}' not supported.".format(activation))
         layers = []
         for n_in, n_out in zip(in_features, out_features):
             layers.append(torch.nn.Linear(
                 n_in,
                 n_out,
                 bias=bias))
+            if self.activation_fn is not None:
+                layers.append(self.activation_fn)
 
         self.layers = torch.nn.Sequential(*layers)
 
