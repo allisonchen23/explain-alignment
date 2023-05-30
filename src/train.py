@@ -45,16 +45,16 @@ def main(config, train_data_loader=None, val_data_loader=None, seed=0):
 
             logger.info("Dataset path(s): \n\t{}".format(dataset.root))
         # Create train and val datasets separately
-        elif config.config['dataset']['type'] == 'KDDataset':
+        elif config.config['dataset']['type'] in ['KDDataset', 'CIFAR10TorchDataset']:
             train_dataset = config.init_obj('dataset', module_data, split='train')
             try:
                 val_dataset = config.init_obj('dataset', module_data, split='val')
             except:
                 val_dataset = config.init_obj('dataset', module_data, split='test')
             train_split = len(train_dataset) / (len(train_dataset) + len(val_dataset))
-            logger.info("Dataset path(s): \n\t{}\n\t{}".format(
-                train_dataset.input_features_path,
-                train_dataset.labels_path))
+            # logger.info("Dataset path(s): \n\t{}\n\t{}".format(
+            #     train_dataset.input_features_path,
+            #     train_dataset.labels_path))
         else:
             raise ValueError("Dataset type '{}' not supported".format(config.config['dataset']['type']))
         train_data_loader = torch.utils.data.DataLoader(
@@ -114,7 +114,8 @@ def main(config, train_data_loader=None, val_data_loader=None, seed=0):
 
     trainer.train()
     
-    if config.config['trainer']['save_val_results']:
+    if 'save_val_results' in config.config['trainer'] and \
+    config.config['trainer']['save_val_results']:
         val_metric_save_path = os.path.join(os.path.dirname(config.save_dir), 'val_metrics.pth')
         val_outputs_save_path = os.path.join(os.path.dirname(config.save_dir), 'val_outputs.pth')
         predict(

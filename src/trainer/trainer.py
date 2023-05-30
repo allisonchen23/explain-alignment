@@ -113,7 +113,7 @@ class Trainer(BaseTrainer):
 
                 output = self.model(data)
                 loss = self.criterion(output, target)
-
+                
                 # Calculate predictions based on argmax
                 prediction = torch.argmax(output, dim=1)
                 # Move predictions and target to cpu and convert to numpy to calculate metrics

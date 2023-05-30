@@ -1,0 +1,64 @@
+{
+    "name": "CIFAR10-resnet18",
+    "n_gpu": 1,
+    "method": "train",
+    "arch": {
+        "type": "CIFAR10PretrainedModel",
+        "args": {
+            "type": "resnet18",
+            "checkpoint_path": "/n/fs/ac-alignment/explain-alignment/checkpoints/cifar10_state_dicts/resnet18.pt"
+        }
+    },
+    "dataset": {
+        "type": "CIFAR10TorchDataset",
+        "args": {
+            "cifar_dir": "data/cifar10-processed",
+            "to_tensor": true,
+            "normalize": true,
+            "means": [0.4914, 0.4822, 0.4465],
+            "stds": [0.2471, 0.2435, 0.2616]
+            
+        }
+    },
+    "data_loader": {
+        "args":{
+            "batch_size": 256,
+            "num_workers": 8
+        }
+    },
+    "optimizer": {
+        "type": "SGD",
+        "args":{
+            "lr": 1e-2,
+            "weight_decay": 1e-5
+        }
+    },
+    "loss": "cross_entropy",
+    "metrics": [
+        "accuracy",
+        "per_class_accuracy",
+        "precision",
+        "recall",
+        "f1",
+        "predicted_class_distribution"
+    ],
+    "lr_scheduler": {
+        "type": "StepLR",
+        "args": {
+            "step_size": 50,
+            "gamma": 1
+        }
+    },
+    "trainer": {
+        "epochs": 30,
+
+        "save_dir": "saved/debug/train_cifar10_resnet/",
+        "save_period": 1,
+        "verbosity": 2,
+
+        "monitor": "min val_loss",
+        "early_stop": 10,
+
+        "tensorboard": true
+    }
+}

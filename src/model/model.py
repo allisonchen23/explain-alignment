@@ -9,6 +9,9 @@ from collections import OrderedDict
 sys.path.insert(0, 'src')
 from model.base_model import BaseModel
 
+sys.path.insert(0, os.path.join('external_code', 'PyTorch_CIFAR10'))
+from cifar10_models.resnet import resnet18, resnet34, resnet50
+
 class LinearLayers(BaseModel):
     def __init__(self,
                  n_in_features,
@@ -101,7 +104,7 @@ class LeNetModel(BaseModel):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
-class WrapperModel(BaseModel):
+class CIFAR10PretrainedModel(BaseModel):
     '''
     Simple model wrapper for models in external_code/PyTorch_CIFAR10/cifar10_models/state_dicts
 
@@ -116,38 +119,49 @@ class WrapperModel(BaseModel):
                  device=None):
         super().__init__()
         self.all_classifiers = {
-
+            # "vgg11_bn": vgg11_bn(),
+            # "vgg13_bn": vgg13_bn(),
+            # "vgg16_bn": vgg16_bn(),
+            # "vgg19_bn": vgg19_bn(),
+            "resnet18": resnet18(),
+            "resnet34": resnet34(),
+            "resnet50": resnet50(),
+            # "densenet121": densenet121(),
+            # "densenet161": densenet161(),
+            # "densenet169": densenet169(),
+            # "mobilenet_v2": mobilenet_v2(),
+            # "googlenet": googlenet(),
+            # "inception_v3": inception_v3()
         }
         if type not in self.all_classifiers:
             raise ValueError("Architecture {} not available for pretrained CIFAR-10 models".format(type))
         self.model = self.all_classifiers[type]
         # self.softmax = torch.nn.Softmax(dim=1)
 
-        self._initialize(
-            checkpoint_path=checkpoint_path,
-            device=device)
-
-        '''
-        # MOVED TO BASE_MODEL
         # Restore weights if checkpoint_path is valid
-        # self.checkpoint_path = checkpoint_path
+        self.checkpoint_path = checkpoint_path
 
-        # if self.checkpoint_path != "":
-        #     try:
-        #         self.restore_model(checkpoint_path)
-        #     except:
-        #         checkpoint = torch.load(checkpoint_path)
-        #         self.model.load_state_dict(checkpoint)
+        if self.checkpoint_path != "":
+            try:
+                self.restore_model(checkpoint_path)
+            except:
+                checkpoint = torch.load(checkpoint_path)
+                self.model.load_state_dict(checkpoint)
 
         # Store parameters
         self.model_parameters = list(filter(lambda p: p.requires_grad, self.parameters()))
         self.n_params = sum([np.prod(p.size()) for p in self.model_parameters])
 
-        # Move model to device
-        if device is not None:
-            self.device = device
-            self.model = self.model.to(self.device)
-        '''
     def forward(self, x):
         self.logits = self.model(x)
         return self.logits
+
+    def get_features(self, x):
+        features = self.model.features(x)
+        return features
+
+    def get_checkpoint_path(self):
+        return self.checkpoint_path
+
+    def get_n_params(self):
+        return self.n_params
