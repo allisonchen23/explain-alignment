@@ -77,12 +77,15 @@ def compute_metrics(metric_fns,
             calculate_f1 = True
             continue
 
-        # Special case for accuracy, predicted_class_distribution
+        # Special case for accuracy, predicted_class_distribution, RMSE
         if metric_name == 'accuracy':
             metrics['accuracy'] = accuracy(prediction, target)
             continue
         elif metric_name == 'predicted_class_distribution':
             metrics[metric_name] = predicted_class_distribution(prediction, n_classes=n_classes)
+            continue
+        elif metric_name == 'RMSE':
+            metrics[metric_name] = RMSE(prediction, target)
             continue
 
         # Calculate metric & store
@@ -247,3 +250,15 @@ def predicted_class_distribution(prediction, n_classes=10):
 
     class_distribution = np.bincount(prediction, minlength=n_classes)
     return class_distribution
+
+def RMSE(prediction, target):
+    assert len(prediction.shape) == 1, "Prediction must be 1-dim array, received {}-shape array.".format(prediction.shape)
+    assert len(target.shape) == 1, "Target must be 1-dim array, received {}-shape array.".format(target.shape)
+
+    # Convert to numpy arrays
+    if torch.is_tensor(prediction):
+        prediction = prediction.cpu().numpy()
+    if torch.is_tensor(target):
+        target = target.cpu().numpy()
+        
+    return np.sqrt(((prediction - target) ** 2).mean())

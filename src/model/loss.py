@@ -10,6 +10,10 @@ def cross_entropy(logits, target):
     loss = torch.nn.CrossEntropyLoss()
     return loss(logits, target)
 
+def RMSE(logits, target):
+    MSE_loss = torch.nn.MSELoss()
+    return torch.sqrt(MSE_loss(logits, target))
+
 def contrastive_cross_entropy(logits, target, margin=0.0):
     """
     A special loss that is similar to crossentropy but becomes exactly zero if

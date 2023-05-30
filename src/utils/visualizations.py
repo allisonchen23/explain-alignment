@@ -125,7 +125,7 @@ def show_image_rows(images,
             image = images[row][col]
             # For padding
             if image is not None:
-                # Matplotlib expects RGB channel to be in the back
+                # Matplotlib expects RGB channel to be in the rck
                 if image.shape[0] == 3:
                     image = np.transpose(image, (1, 2, 0))
 
@@ -172,12 +172,14 @@ def show_image_rows(images,
     return fig, axs
 
 def bar_graph(data,
+              errors=None,
               labels=None,
               groups=None,
               title=None,
               xlabel=None,
               ylabel=None,
               xlabel_rotation=0,
+              fig_size=None,
               save_path=None,
               show=True):
     '''
@@ -185,6 +187,9 @@ def bar_graph(data,
 
     Arg(s):
         data : N x C np.array
+            N : number of data points
+            C : number of bar classes
+        errors : N x C np.array of errors for each bar
             N : number of data points
             C : number of bar classes
         labels : list[str]
@@ -199,13 +204,17 @@ def bar_graph(data,
             label for y-axis
         xlabel_rotation : int
             how much to rotate x labels by if they overlap
+        fig_size : (float, float)
+            (width, height) of figure size
         save_path : str
             if not None, the path to save bar graph to
     '''
     fig, ax = plt.subplots()
     assert len(data.shape) == 2, "Expected 2D data, received {}D data.".format(len(data.shape))
     n_groups, n_classes = data.shape
-
+    # If no errors passed,
+    if errors is None:
+        errors = np.zeros_like(data)
     # Parameters for bar graphs
     x_pos = np.arange(n_classes)
     width = 1 / n_groups
@@ -219,16 +228,18 @@ def bar_graph(data,
     if n_groups == 1:
         ax.bar(x_pos,
             data[0],
+            yerr=errors[0],
             alpha=0.75,
             edgecolor='black',
             capsize=10,
             label=groups[0],
             width=width)
     elif n_groups % 2 == 0: # Even number of groups
-        for group_idx, group_data in enumerate(data):
+        for group_idx, (group_data, group_errors) in enumerate(zip(data, errors)):
             if group_idx < mid_idx:
                 ax.bar(x_pos - width * ((mid_idx - group_idx) * 2 - 1) / 2,
                        group_data,
+                       yerr=group_errors,
                        alpha=0.75,
                        edgecolor='black',
                        capsize=10,
@@ -237,6 +248,7 @@ def bar_graph(data,
             else:
                 ax.bar(x_pos + width * ((group_idx - mid_idx) * 2 + 1) / 2,
                        group_data,
+                       yerr=group_errors,
                        alpha=0.75,
                        edgecolor='black',
                        capsize=10,
@@ -244,10 +256,11 @@ def bar_graph(data,
                        width=width)
 
     else:  # Odd number of groups
-        for group_idx, group_data in enumerate(data):
+        for group_idx, (group_data, group_errors) in enumerate(zip(data, errors)):
             if group_idx < mid_idx:
                 ax.bar(x_pos - 1 / 2 + width * group_idx,
                     group_data,
+                    yerr=group_errors,
                     alpha=0.75,
                     edgecolor='black',
                     capsize=10,
@@ -256,6 +269,7 @@ def bar_graph(data,
             elif group_idx == mid_idx:
                 ax.bar(x_pos - width / 2,
                     group_data,
+                    yerr=group_errors,
                     alpha=0.75,
                     edgecolor='black',
                     capsize=10,
@@ -264,6 +278,7 @@ def bar_graph(data,
             else:
                 ax.bar(x_pos - width / 2 + (group_idx - mid_idx) * width,
                     group_data,
+                    yerr=group_errors,
                     alpha=0.75,
                     ecolor='black',
                     capsize=10,
@@ -280,6 +295,10 @@ def bar_graph(data,
     if title is not None:
         ax.set_title(title)
     ax.legend()
+    
+    if fig_size is not None:
+        fig.set_figheight(fig_size[1])
+        fig.set_figheight(fig_size[0])
     plt.tight_layout()
 
     # If save_path is not None, save graph
@@ -292,6 +311,7 @@ def bar_graph(data,
     if show:
         plt.show()
     plt.close()
+    return ax
 
 def histogram(data,
               multi_method='side',
@@ -304,6 +324,8 @@ def histogram(data,
               title=None,
               xlabel=None,
               ylabel=None,
+              xlim=None,
+              ylim=None,
               marker=None,
               fig_size=None,
               save_path=None,
@@ -395,7 +417,11 @@ def histogram(data,
         plt.xlabel(xlabel)
     if ylabel is not None:
         plt.ylabel(ylabel)
-
+    
+    if xlim is not None:
+        plt.xlim(xlim)
+    if ylim is not None:
+        plt.ylim(ylim)
     if fig_size is not None:
         plt.figure(figsize=fig_size)
     if save_path is not None:
@@ -409,6 +435,8 @@ def histogram(data,
 
 def plot(xs,
          ys,
+         fig=None,
+         ax=None,
          labels=None,
          alpha=1.0,
          marker_size=5,
@@ -432,6 +460,8 @@ def plot(xs,
             x values
         ys : list[list[float]]
             y values
+        ax : plt.subplot axis
+            optional axis to plot on
         labels : list[str]
             line labels for the legend
         alpha : int
@@ -470,14 +500,18 @@ def plot(xs,
     Returns:
         fig, ax
             figure and axes of plot
-    '''
-    plt.clf()
-
-    if fig_size is not None:
-        fig = plt.figure(figsize=fig_size)
+    '''    
+    if fig is None and ax is None:
+        plt.clf()
+        if fig_size is not None:
+            fig = plt.figure(figsize=fig_size)
+        else:
+            fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        
     else:
-        fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
+        assert fig is not None and ax is not None, "fig and ax must both or neither be None"
+    
     n_lines = len(xs)
     if labels is None:
         labels = [None for i in range(n_lines)]
