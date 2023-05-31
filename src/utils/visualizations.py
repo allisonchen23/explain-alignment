@@ -172,12 +172,14 @@ def show_image_rows(images,
     return fig, axs
 
 def bar_graph(data,
+              errors=None,
               labels=None,
               groups=None,
               title=None,
               xlabel=None,
               ylabel=None,
               xlabel_rotation=0,
+              fig_size=None,
               save_path=None,
               show=True):
     '''
@@ -185,6 +187,9 @@ def bar_graph(data,
 
     Arg(s):
         data : N x C np.array
+            N : number of data points
+            C : number of bar classes
+        errors : N x C np.array of errors for each bar
             N : number of data points
             C : number of bar classes
         labels : list[str]
@@ -199,13 +204,17 @@ def bar_graph(data,
             label for y-axis
         xlabel_rotation : int
             how much to rotate x labels by if they overlap
+        fig_size : (float, float)
+            (width, height) of figure size
         save_path : str
             if not None, the path to save bar graph to
     '''
     fig, ax = plt.subplots()
     assert len(data.shape) == 2, "Expected 2D data, received {}D data.".format(len(data.shape))
     n_groups, n_classes = data.shape
-
+    # If no errors passed,
+    if errors is None:
+        errors = np.zeros_like(data)
     # Parameters for bar graphs
     x_pos = np.arange(n_classes)
     width = 1 / n_groups
@@ -219,16 +228,18 @@ def bar_graph(data,
     if n_groups == 1:
         ax.bar(x_pos,
             data[0],
+            yerr=errors[0],
             alpha=0.75,
             edgecolor='black',
             capsize=10,
             label=groups[0],
             width=width)
     elif n_groups % 2 == 0: # Even number of groups
-        for group_idx, group_data in enumerate(data):
+        for group_idx, (group_data, group_errors) in enumerate(zip(data, errors)):
             if group_idx < mid_idx:
                 ax.bar(x_pos - width * ((mid_idx - group_idx) * 2 - 1) / 2,
                        group_data,
+                       yerr=group_errors,
                        alpha=0.75,
                        edgecolor='black',
                        capsize=10,
@@ -237,6 +248,7 @@ def bar_graph(data,
             else:
                 ax.bar(x_pos + width * ((group_idx - mid_idx) * 2 + 1) / 2,
                        group_data,
+                       yerr=group_errors,
                        alpha=0.75,
                        edgecolor='black',
                        capsize=10,
@@ -244,10 +256,11 @@ def bar_graph(data,
                        width=width)
 
     else:  # Odd number of groups
-        for group_idx, group_data in enumerate(data):
+        for group_idx, (group_data, group_errors) in enumerate(zip(data, errors)):
             if group_idx < mid_idx:
                 ax.bar(x_pos - 1 / 2 + width * group_idx,
                     group_data,
+                    yerr=group_errors,
                     alpha=0.75,
                     edgecolor='black',
                     capsize=10,
@@ -256,6 +269,7 @@ def bar_graph(data,
             elif group_idx == mid_idx:
                 ax.bar(x_pos - width / 2,
                     group_data,
+                    yerr=group_errors,
                     alpha=0.75,
                     edgecolor='black',
                     capsize=10,
@@ -264,6 +278,7 @@ def bar_graph(data,
             else:
                 ax.bar(x_pos - width / 2 + (group_idx - mid_idx) * width,
                     group_data,
+                    yerr=group_errors,
                     alpha=0.75,
                     ecolor='black',
                     capsize=10,
@@ -280,6 +295,9 @@ def bar_graph(data,
     if title is not None:
         ax.set_title(title)
     ax.legend()
+    
+    if fig_size is not None:
+        plt.figure(figsize=fig_size)
     plt.tight_layout()
 
     # If save_path is not None, save graph
