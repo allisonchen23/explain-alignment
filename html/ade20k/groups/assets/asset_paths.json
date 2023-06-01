@@ -1,0 +1,58 @@
+{
+    "group_1": {
+        "ADE_train_00018439": {
+            "image_path": "html/ade20k/groups/assets/group_1/ADE_train_00018439/ADE_train_00018439.jpg",
+            "plot_path": "html/ade20k/groups/assets/group_1/ADE_train_00018439/unnormalized_probabilities.png",
+            "entropy": 1.246587571539124,
+            "t2c": 0.74,
+            "human_prediction": 15,
+            "model_prediction": 15,
+            "explainer_prediction": 15
+        },
+        "ADE_train_00017811": {
+            "image_path": "html/ade20k/groups/assets/group_1/ADE_train_00017811/ADE_train_00017811.jpg",
+            "plot_path": "html/ade20k/groups/assets/group_1/ADE_train_00017811/unnormalized_probabilities.png",
+            "entropy": 0.9112322329321711,
+            "t2c": 0.72,
+            "human_prediction": 11,
+            "model_prediction": 11,
+            "explainer_prediction": 11
+        },
+        "ADE_train_00004571": {
+            "image_path": "html/ade20k/groups/assets/group_1/ADE_train_00004571/ADE_train_00004571.jpg",
+            "plot_path": "html/ade20k/groups/assets/group_1/ADE_train_00004571/unnormalized_probabilities.png",
+            "entropy": 0.8834427425326126,
+            "t2c": 0.4299999999999999,
+            "human_prediction": 10,
+            "model_prediction": 10,
+            "explainer_prediction": 10
+        },
+        "ADE_train_00013837": {
+            "image_path": "html/ade20k/groups/assets/group_1/ADE_train_00013837/ADE_train_00013837.jpg",
+            "plot_path": "html/ade20k/groups/assets/group_1/ADE_train_00013837/unnormalized_probabilities.png",
+            "entropy": 0.8600778672743792,
+            "t2c": 0.72,
+            "human_prediction": 15,
+            "model_prediction": 15,
+            "explainer_prediction": 15
+        },
+        "ADE_train_00017619": {
+            "image_path": "html/ade20k/groups/assets/group_1/ADE_train_00017619/ADE_train_00017619.jpg",
+            "plot_path": "html/ade20k/groups/assets/group_1/ADE_train_00017619/unnormalized_probabilities.png",
+            "entropy": 0.8508741440413846,
+            "t2c": 0.6,
+            "human_prediction": 15,
+            "model_prediction": 15,
+            "explainer_prediction": 15
+        },
+        "ADE_train_00000109": {
+            "image_path": "html/ade20k/groups/assets/group_1/ADE_train_00000109/ADE_train_00000109.jpg",
+            "plot_path": "html/ade20k/groups/assets/group_1/ADE_train_00000109/unnormalized_probabilities.png",
+            "entropy": 0.759764564958659,
+            "t2c": 0.4,
+            "human_prediction": 2,
+            "model_prediction": 2,
+            "explainer_prediction": 2
+        }
+    }
+}

@@ -310,6 +310,7 @@ def bar_graph(data,
     if show:
         plt.show()
     plt.close()
+    return ax
 
 def histogram(data,
               multi_method='side',
@@ -322,6 +323,8 @@ def histogram(data,
               title=None,
               xlabel=None,
               ylabel=None,
+              xlim=None,
+              ylim=None,
               marker=None,
               fig_size=None,
               save_path=None,
@@ -413,7 +416,11 @@ def histogram(data,
         plt.xlabel(xlabel)
     if ylabel is not None:
         plt.ylabel(ylabel)
-
+    
+    if xlim is not None:
+        plt.xlim(xlim)
+    if ylim is not None:
+        plt.ylim(ylim)
     if fig_size is not None:
         plt.figure(figsize=fig_size)
     if save_path is not None:
