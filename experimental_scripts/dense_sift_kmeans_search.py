@@ -10,30 +10,72 @@ from utils.visualizations import plot
 from utils.utils import informal_log, ensure_dir
 # debug = True
 # step_size = 2
-def dense_sift_kmeans_search(debug, step_size, sigma, 
-                             image_size=(32, 32)):
-    # Load descriptors
 
-    # if dense:
+seed = 0
+np.random.seed(seed)
+
+def dense_sift_kmeans_search(debug, step_size, sigma, 
+                             n_samples=None,
+                             image_size=(32, 32)):
     sift_data_path = os.path.join("saved", "cifar10", 
                               'sift_{}_{}_sigma{}'.format(image_size[0], image_size[1], sigma), 
                               'dense_stride_{}'.format(step_size),
                               'sift_keypoints_descriptors.pth')
-    # else:
-    #     sift_data_path = os.path.join(cifar10_save_dir, 
-    #                                   'sift_{}_{}_sigma{}'.format(image_size[0], image_size[1], sigma), 
-    #                                   'sift_keypoints_descriptors.pth')
-    save_dir = os.path.dirname(sift_data_path)
+    timestamp = datetime.now().strftime(r"%m%d_%H%M%S")
+    save_dir = os.path.dirname(sift_data_path, timestamp)
+    
     log_path = os.path.join(save_dir, 'sift_kmeans_log.txt')
     informal_log("KMeans hyperparameter search", log_path)
 
-    
+    # Load descriptors
     informal_log("[{}] Loading features from {}".format(
         datetime.now().strftime(r'%m%d_%H%M%S'), sift_data_path), log_path)
-    sift_data = torch.load(sift_data_path)
+#     sift_data = torch.load(sift_data_path)
 
-    train_descriptors = sift_data['train']['descriptors']
-    flat_train_descriptors = np.concatenate(train_descriptors, axis=0)
+#     train_descriptors = sift_data['train']['descriptors']
+#     n_data = len(train_descriptors)
+
+    # Randomly sample if needed to reduce number of examples
+    
+    if n_samples is not None:
+        sampled_descriptor_save_path = os.path.join(save_dir, '{}_train_sift_keypoint_descriptors.pth'.format(n_samples))
+        if os.path.exists(sampled_descriptor_save_path):
+            informal_log("[{}] Loading features from {}".format(
+            datetime.now().strftime(r'%m%d_%H%M%S'), sampled_descriptor_save_path), log_path)
+            train_descriptors = torch.load(sampled_descriptor_save_path)
+        else:
+            informal_log("[{}] Loading features from {}".format(
+                datetime.now().strftime(r'%m%d_%H%M%S'), sift_data_path), log_path)
+            sift_data = torch.load(sift_data_path)
+            train_descriptors = sift_data['train']['descriptors']
+            n_data = len(train_descriptors)
+            if n_samples >= n_data:
+                raise ValueError("N_samples must be less than n_data ({} and {} respectively)".format(
+                    n_samples, n_data))
+            random_indices = np.random.choice(n_data, 
+                                      size=n_samples, 
+                                      replace=False)
+            train_descriptors = np.stack(train_descriptors, axis=0)
+            train_descriptors = train_descriptors[random_indices, ...]
+
+            torch.save(train_descriptors, sampled_descriptor_save_path)
+            indices_save_path = os.path.join(save_dir, "{}_train_indices.pth".format(n_samples))
+            torch.save(random_indices, indices_save_path)
+            informal_log("[{}] Sampled {} images and saving descriptors to {} and indices to {}".format(
+                datetime.now().strftime(r'%m%d_%H%M%S'), 
+                n_samples,
+                sampled_descriptor_save_path,
+                indices_save_path), log_path)
+        
+        # Flatten descriptors for clustering
+        descriptor_dim = train_descriptors.shape[-1]
+        flat_train_descriptors = train_descriptors.reshape((-1, descriptor_dim))
+    else:  # No sampling
+        informal_log("[{}] Loading features from {}".format(
+            datetime.now().strftime(r'%m%d_%H%M%S'), sift_data_path), log_path)
+        sift_data = torch.load(sift_data_path)
+        train_descriptors = sift_data['train']['descriptors']
+        flat_train_descriptors = np.concatenate(train_descriptors, axis=0)
     informal_log("There are {} descriptors of size {}".format(
         flat_train_descriptors.shape[0], flat_train_descriptors.shape[1]), log_path)
 
@@ -81,12 +123,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--step_size', type=int, required=True)
+    parser.add_argument('--n_samples', type=int, default=50000)
     parser.add_argument('--sigma', type=float, required=True)
     
     args = parser.parse_args()
     dense_sift_kmeans_search(
         debug=args.debug,
         step_size=args.step_size,
+        n_samples=args.n_samples,
         sigma=args.sigma)
     
     
