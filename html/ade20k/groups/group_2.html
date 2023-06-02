@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <title>index.html</title>
+  </head>
+  <body>
+    <h2>
+      group_2: Model = Explainer != Human
+    </h2>
+    <h3>
+      Indices -> Category mappings
+    </h3>
+    <p>0: Shopping and dining [INDOOR]</p>
+    <p>1: Workplace (office building, factory, lab, etc.) [INDOOR]</p>
+    <p>2: Home or hotel [INDOOR]</p>
+    <p>3: Transportation (vehicle interiors, stations, etc) [INDOOR]</p>
+    <p>4: Sports and leisure [INDOOR]</p>
+    <p>5: Cultural (art, education, religion, military, law, politics, etc) [INDOOR]</p>
+    <p>6: Water, ice, snow [OUTDOOR]</p>
+    <p>7: Mountains, hills, desert, sky [OUTDOOR]</p>
+    <p>8: Forest, field, jungle [OUTDOOR]</p>
+    <p>9: Man-made elements [OUTDOOR]</p>
+    <p>10: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR]</p>
+    <p>11: Cultural or historical building/places (military, religious) [OUTDOOR]</p>
+    <p>12: Sports fields, parks, leisure spaces [OUTDOOR]</p>
+    <p>13: Industrial and construction [OUTDOOR]</p>
+    <p>14: Houses, cabins, gardens, and farms [OUTDOOR]</p>
+    <p>15: Commercial buildings, shops, markets, cities, and towns [OUTDOOR]</p>
+    <h3>
+      1. ADE_train_00001109
+    </h3>
+    <p>Human entropy: 1.6041 T2C: 0.9900</p>
+    <p>Human prediction: Home or hotel [INDOOR] (2)</p>
+    <p>Explainer prediction: Workplace (office building, factory, lab, etc.) [INDOOR] (1)</p>
+    <p>Model prediction: Workplace (office building, factory, lab, etc.) [INDOOR] (1)</p>
+    <image src="assets/group_2/ADE_train_00001109/ADE_train_00001109.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00001109/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      2. ADE_train_00016725
+    </h3>
+    <p>Human entropy: 1.2670 T2C: 0.8700</p>
+    <p>Human prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Explainer prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <p>Model prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <image src="assets/group_2/ADE_train_00016725/ADE_train_00016725.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00016725/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      3. ADE_train_00008917
+    </h3>
+    <p>Human entropy: 1.0909 T2C: 0.9800</p>
+    <p>Human prediction: Workplace (office building, factory, lab, etc.) [INDOOR] (1)</p>
+    <p>Explainer prediction: Sports and leisure [INDOOR] (4)</p>
+    <p>Model prediction: Sports and leisure [INDOOR] (4)</p>
+    <image src="assets/group_2/ADE_train_00008917/ADE_train_00008917.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00008917/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      4. ADE_train_00001548
+    </h3>
+    <p>Human entropy: 1.0397 T2C: 0.8600</p>
+    <p>Human prediction: Houses, cabins, gardens, and farms [OUTDOOR] (14)</p>
+    <p>Explainer prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <p>Model prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <image src="assets/group_2/ADE_train_00001548/ADE_train_00001548.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00001548/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      5. ADE_train_00014619
+    </h3>
+    <p>Human entropy: 1.0107 T2C: 0.7900</p>
+    <p>Human prediction: Houses, cabins, gardens, and farms [OUTDOOR] (14)</p>
+    <p>Explainer prediction: Home or hotel [INDOOR] (2)</p>
+    <p>Model prediction: Home or hotel [INDOOR] (2)</p>
+    <image src="assets/group_2/ADE_train_00014619/ADE_train_00014619.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00014619/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      6. ADE_val_00001730
+    </h3>
+    <p>Human entropy: 0.9635 T2C: 0.7900</p>
+    <p>Human prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Explainer prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <p>Model prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <image src="assets/group_2/ADE_val_00001730/ADE_val_00001730.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_val_00001730/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      7. ADE_val_00000499
+    </h3>
+    <p>Human entropy: 0.9332 T2C: 0.4100</p>
+    <p>Human prediction: Cultural (art, education, religion, military, law, politics, etc) [INDOOR] (5)</p>
+    <p>Explainer prediction: Shopping and dining [INDOOR] (0)</p>
+    <p>Model prediction: Shopping and dining [INDOOR] (0)</p>
+    <image src="assets/group_2/ADE_val_00000499/ADE_val_00000499.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_val_00000499/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      8. ADE_train_00015756
+    </h3>
+    <p>Human entropy: 0.9198 T2C: 0.7400</p>
+    <p>Human prediction: Shopping and dining [INDOOR] (0)</p>
+    <p>Explainer prediction: Workplace (office building, factory, lab, etc.) [INDOOR] (1)</p>
+    <p>Model prediction: Workplace (office building, factory, lab, etc.) [INDOOR] (1)</p>
+    <image src="assets/group_2/ADE_train_00015756/ADE_train_00015756.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00015756/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      9. ADE_train_00020140
+    </h3>
+    <p>Human entropy: 0.8966 T2C: 0.5900</p>
+    <p>Human prediction: Houses, cabins, gardens, and farms [OUTDOOR] (14)</p>
+    <p>Explainer prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Model prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <image src="assets/group_2/ADE_train_00020140/ADE_train_00020140.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00020140/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      10. ADE_train_00018162
+    </h3>
+    <p>Human entropy: 0.8962 T2C: 0.5500</p>
+    <p>Human prediction: Houses, cabins, gardens, and farms [OUTDOOR] (14)</p>
+    <p>Explainer prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <p>Model prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <image src="assets/group_2/ADE_train_00018162/ADE_train_00018162.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00018162/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      11. ADE_train_00017485
+    </h3>
+    <p>Human entropy: 0.8923 T2C: 0.4700</p>
+    <p>Human prediction: Houses, cabins, gardens, and farms [OUTDOOR] (14)</p>
+    <p>Explainer prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Model prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <image src="assets/group_2/ADE_train_00017485/ADE_train_00017485.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00017485/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      12. ADE_train_00018821
+    </h3>
+    <p>Human entropy: 0.7844 T2C: 0.5500</p>
+    <p>Human prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <p>Explainer prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Model prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <image src="assets/group_2/ADE_train_00018821/ADE_train_00018821.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00018821/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      13. ADE_train_00019201
+    </h3>
+    <p>Human entropy: 0.7539 T2C: 0.5700</p>
+    <p>Human prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <p>Explainer prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Model prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <image src="assets/group_2/ADE_train_00019201/ADE_train_00019201.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00019201/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      14. ADE_train_00010955
+    </h3>
+    <p>Human entropy: 0.6930 T2C: 0.9900</p>
+    <p>Human prediction: Workplace (office building, factory, lab, etc.) [INDOOR] (1)</p>
+    <p>Explainer prediction: Cultural (art, education, religion, military, law, politics, etc) [INDOOR] (5)</p>
+    <p>Model prediction: Cultural (art, education, religion, military, law, politics, etc) [INDOOR] (5)</p>
+    <image src="assets/group_2/ADE_train_00010955/ADE_train_00010955.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00010955/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      15. ADE_train_00013727
+    </h3>
+    <p>Human entropy: 0.6800 T2C: 0.7800</p>
+    <p>Human prediction: Shopping and dining [INDOOR] (0)</p>
+    <p>Explainer prediction: Workplace (office building, factory, lab, etc.) [INDOOR] (1)</p>
+    <p>Model prediction: Workplace (office building, factory, lab, etc.) [INDOOR] (1)</p>
+    <image src="assets/group_2/ADE_train_00013727/ADE_train_00013727.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00013727/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      16. ADE_train_00001379
+    </h3>
+    <p>Human entropy: 0.6763 T2C: 0.8300</p>
+    <p>Human prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Explainer prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <p>Model prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <image src="assets/group_2/ADE_train_00001379/ADE_train_00001379.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00001379/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      17. ADE_train_00014757
+    </h3>
+    <p>Human entropy: 0.6760 T2C: 0.7600</p>
+    <p>Human prediction: Sports and leisure [INDOOR] (4)</p>
+    <p>Explainer prediction: Cultural (art, education, religion, military, law, politics, etc) [INDOOR] (5)</p>
+    <p>Model prediction: Cultural (art, education, religion, military, law, politics, etc) [INDOOR] (5)</p>
+    <image src="assets/group_2/ADE_train_00014757/ADE_train_00014757.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00014757/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      18. ADE_train_00012416
+    </h3>
+    <p>Human entropy: 0.6723 T2C: 0.7800</p>
+    <p>Human prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Explainer prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <p>Model prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <image src="assets/group_2/ADE_train_00012416/ADE_train_00012416.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00012416/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      19. ADE_val_00001630
+    </h3>
+    <p>Human entropy: 0.6721 T2C: 0.8100</p>
+    <p>Human prediction: Home or hotel [INDOOR] (2)</p>
+    <p>Explainer prediction: Shopping and dining [INDOOR] (0)</p>
+    <p>Model prediction: Shopping and dining [INDOOR] (0)</p>
+    <image src="assets/group_2/ADE_val_00001630/ADE_val_00001630.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_val_00001630/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      20. ADE_train_00008213
+    </h3>
+    <p>Human entropy: 0.6711 T2C: 0.8200</p>
+    <p>Human prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <p>Explainer prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Model prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <image src="assets/group_2/ADE_train_00008213/ADE_train_00008213.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00008213/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      21. ADE_train_00015040
+    </h3>
+    <p>Human entropy: 0.6474 T2C: 0.9400</p>
+    <p>Human prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <p>Explainer prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Model prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <image src="assets/group_2/ADE_train_00015040/ADE_train_00015040.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00015040/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      22. ADE_train_00009837
+    </h3>
+    <p>Human entropy: 0.6388 T2C: 0.6800</p>
+    <p>Human prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Explainer prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <p>Model prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <image src="assets/group_2/ADE_train_00009837/ADE_train_00009837.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00009837/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      23. ADE_train_00004813
+    </h3>
+    <p>Human entropy: 0.6315 T2C: 0.6700</p>
+    <p>Human prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <p>Explainer prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Model prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <image src="assets/group_2/ADE_train_00004813/ADE_train_00004813.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00004813/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      24. ADE_train_00001320
+    </h3>
+    <p>Human entropy: 0.6284 T2C: 0.5800</p>
+    <p>Human prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <p>Explainer prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <p>Model prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <image src="assets/group_2/ADE_train_00001320/ADE_train_00001320.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00001320/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      25. ADE_train_00007632
+    </h3>
+    <p>Human entropy: 0.6251 T2C: 0.6900</p>
+    <p>Human prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Explainer prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <p>Model prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <image src="assets/group_2/ADE_train_00007632/ADE_train_00007632.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00007632/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      26. ADE_train_00005189
+    </h3>
+    <p>Human entropy: 0.6187 T2C: 0.6800</p>
+    <p>Human prediction: Sports and leisure [INDOOR] (4)</p>
+    <p>Explainer prediction: Shopping and dining [INDOOR] (0)</p>
+    <p>Model prediction: Shopping and dining [INDOOR] (0)</p>
+    <image src="assets/group_2/ADE_train_00005189/ADE_train_00005189.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00005189/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      27. ADE_train_00009424
+    </h3>
+    <p>Human entropy: 0.6172 T2C: 0.6000</p>
+    <p>Human prediction: Home or hotel [INDOOR] (2)</p>
+    <p>Explainer prediction: Cultural (art, education, religion, military, law, politics, etc) [INDOOR] (5)</p>
+    <p>Model prediction: Cultural (art, education, religion, military, law, politics, etc) [INDOOR] (5)</p>
+    <image src="assets/group_2/ADE_train_00009424/ADE_train_00009424.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00009424/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      28. ADE_train_00016678
+    </h3>
+    <p>Human entropy: 0.6117 T2C: 0.5900</p>
+    <p>Human prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Explainer prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <p>Model prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <image src="assets/group_2/ADE_train_00016678/ADE_train_00016678.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00016678/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      29. ADE_train_00017013
+    </h3>
+    <p>Human entropy: 0.6045 T2C: 0.6600</p>
+    <p>Human prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <p>Explainer prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Model prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <image src="assets/group_2/ADE_train_00017013/ADE_train_00017013.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00017013/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      30. ADE_val_00000373
+    </h3>
+    <p>Human entropy: 0.5995 T2C: 0.5400</p>
+    <p>Human prediction: Workplace (office building, factory, lab, etc.) [INDOOR] (1)</p>
+    <p>Explainer prediction: Home or hotel [INDOOR] (2)</p>
+    <p>Model prediction: Home or hotel [INDOOR] (2)</p>
+    <image src="assets/group_2/ADE_val_00000373/ADE_val_00000373.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_val_00000373/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      31. ADE_train_00014220
+    </h3>
+    <p>Human entropy: 0.5951 T2C: 0.4600</p>
+    <p>Human prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <p>Explainer prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <p>Model prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <image src="assets/group_2/ADE_train_00014220/ADE_train_00014220.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00014220/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      32. ADE_train_00007942
+    </h3>
+    <p>Human entropy: 0.5933 T2C: 0.5300</p>
+    <p>Human prediction: Mountains, hills, desert, sky [OUTDOOR] (7)</p>
+    <p>Explainer prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <p>Model prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <image src="assets/group_2/ADE_train_00007942/ADE_train_00007942.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00007942/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      33. ADE_train_00002555
+    </h3>
+    <p>Human entropy: 0.5833 T2C: 0.5400</p>
+    <p>Human prediction: Shopping and dining [INDOOR] (0)</p>
+    <p>Explainer prediction: Home or hotel [INDOOR] (2)</p>
+    <p>Model prediction: Home or hotel [INDOOR] (2)</p>
+    <image src="assets/group_2/ADE_train_00002555/ADE_train_00002555.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00002555/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      34. ADE_train_00014365
+    </h3>
+    <p>Human entropy: 0.5813 T2C: 0.5500</p>
+    <p>Human prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <p>Explainer prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Model prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <image src="assets/group_2/ADE_train_00014365/ADE_train_00014365.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00014365/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      35. ADE_train_00012417
+    </h3>
+    <p>Human entropy: 0.5745 T2C: 0.5800</p>
+    <p>Human prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <p>Explainer prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <p>Model prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <image src="assets/group_2/ADE_train_00012417/ADE_train_00012417.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00012417/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      36. ADE_train_00020139
+    </h3>
+    <p>Human entropy: 0.5745 T2C: 0.5800</p>
+    <p>Human prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <p>Explainer prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Model prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <image src="assets/group_2/ADE_train_00020139/ADE_train_00020139.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00020139/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      37. ADE_train_00009161
+    </h3>
+    <p>Human entropy: 0.5282 T2C: 0.4700</p>
+    <p>Human prediction: Mountains, hills, desert, sky [OUTDOOR] (7)</p>
+    <p>Explainer prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <p>Model prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <image src="assets/group_2/ADE_train_00009161/ADE_train_00009161.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00009161/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      38. ADE_train_00017710
+    </h3>
+    <p>Human entropy: 0.4976 T2C: 0.3900</p>
+    <p>Human prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <p>Explainer prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Model prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <image src="assets/group_2/ADE_train_00017710/ADE_train_00017710.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00017710/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      39. ADE_train_00014171
+    </h3>
+    <p>Human entropy: 0.4949 T2C: 0.3800</p>
+    <p>Human prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <p>Explainer prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Model prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <image src="assets/group_2/ADE_train_00014171/ADE_train_00014171.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00014171/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      40. ADE_train_00018085
+    </h3>
+    <p>Human entropy: 0.4905 T2C: 0.3000</p>
+    <p>Human prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <p>Explainer prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Model prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <image src="assets/group_2/ADE_train_00018085/ADE_train_00018085.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00018085/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      41. ADE_train_00013975
+    </h3>
+    <p>Human entropy: 0.4808 T2C: 0.3600</p>
+    <p>Human prediction: Man-made elements [OUTDOOR] (9)</p>
+    <p>Explainer prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <p>Model prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <image src="assets/group_2/ADE_train_00013975/ADE_train_00013975.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00013975/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      42. ADE_train_00019783
+    </h3>
+    <p>Human entropy: 0.4756 T2C: 0.4100</p>
+    <p>Human prediction: Cultural or historical building/places (military, religious) [OUTDOOR] (11)</p>
+    <p>Explainer prediction: Houses, cabins, gardens, and farms [OUTDOOR] (14)</p>
+    <p>Model prediction: Houses, cabins, gardens, and farms [OUTDOOR] (14)</p>
+    <image src="assets/group_2/ADE_train_00019783/ADE_train_00019783.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00019783/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      43. ADE_train_00009007
+    </h3>
+    <p>Human entropy: 0.4741 T2C: 0.3700</p>
+    <p>Human prediction: Mountains, hills, desert, sky [OUTDOOR] (7)</p>
+    <p>Explainer prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <p>Model prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <image src="assets/group_2/ADE_train_00009007/ADE_train_00009007.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00009007/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      44. ADE_train_00009494
+    </h3>
+    <p>Human entropy: 0.4669 T2C: 0.3800</p>
+    <p>Human prediction: Houses, cabins, gardens, and farms [OUTDOOR] (14)</p>
+    <p>Explainer prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <p>Model prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <image src="assets/group_2/ADE_train_00009494/ADE_train_00009494.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00009494/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      45. ADE_train_00004423
+    </h3>
+    <p>Human entropy: 0.4562 T2C: 0.3800</p>
+    <p>Human prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <p>Explainer prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Model prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <image src="assets/group_2/ADE_train_00004423/ADE_train_00004423.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00004423/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      46. ADE_train_00017260
+    </h3>
+    <p>Human entropy: 0.3693 T2C: 0.2500</p>
+    <p>Human prediction: Houses, cabins, gardens, and farms [OUTDOOR] (14)</p>
+    <p>Explainer prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Model prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <image src="assets/group_2/ADE_train_00017260/ADE_train_00017260.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00017260/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      47. ADE_val_00001554
+    </h3>
+    <p>Human entropy: 0.2046 T2C: 0.1400</p>
+    <p>Human prediction: Mountains, hills, desert, sky [OUTDOOR] (7)</p>
+    <p>Explainer prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <p>Model prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <image src="assets/group_2/ADE_val_00001554/ADE_val_00001554.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_val_00001554/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      48. ADE_train_00003181
+    </h3>
+    <p>Human entropy: 0.0000 T2C: 0.6700</p>
+    <p>Human prediction: Sports and leisure [INDOOR] (4)</p>
+    <p>Explainer prediction: Workplace (office building, factory, lab, etc.) [INDOOR] (1)</p>
+    <p>Model prediction: Workplace (office building, factory, lab, etc.) [INDOOR] (1)</p>
+    <image src="assets/group_2/ADE_train_00003181/ADE_train_00003181.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00003181/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      49. ADE_train_00014734
+    </h3>
+    <p>Human entropy: 0.0000 T2C: 0.2300</p>
+    <p>Human prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Explainer prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <p>Model prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <image src="assets/group_2/ADE_train_00014734/ADE_train_00014734.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00014734/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      50. ADE_train_00019574
+    </h3>
+    <p>Human entropy: 0.0000 T2C: 0.2100</p>
+    <p>Human prediction: Mountains, hills, desert, sky [OUTDOOR] (7)</p>
+    <p>Explainer prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <p>Model prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <image src="assets/group_2/ADE_train_00019574/ADE_train_00019574.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00019574/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      51. ADE_train_00015280
+    </h3>
+    <p>Human entropy: 0.0000 T2C: 0.0700</p>
+    <p>Human prediction: Houses, cabins, gardens, and farms [OUTDOOR] (14)</p>
+    <p>Explainer prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Model prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <image src="assets/group_2/ADE_train_00015280/ADE_train_00015280.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00015280/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      52. ADE_train_00015120
+    </h3>
+    <p>Human entropy: 0.0000 T2C: 0.0600</p>
+    <p>Human prediction: Transportation (roads, parking, bridges, boats, airports, etc) [OUTDOOR] (10)</p>
+    <p>Explainer prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Model prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <image src="assets/group_2/ADE_train_00015120/ADE_train_00015120.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00015120/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      53. ADE_train_00014998
+    </h3>
+    <p>Human entropy: 0.0000 T2C: 0.0500</p>
+    <p>Human prediction: Sports fields, parks, leisure spaces [OUTDOOR] (12)</p>
+    <p>Explainer prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Model prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <image src="assets/group_2/ADE_train_00014998/ADE_train_00014998.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00014998/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      54. ADE_val_00000814
+    </h3>
+    <p>Human entropy: 0.0000 T2C: 0.0000</p>
+    <p>Human prediction: Houses, cabins, gardens, and farms [OUTDOOR] (14)</p>
+    <p>Explainer prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Model prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <image src="assets/group_2/ADE_val_00000814/ADE_val_00000814.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_val_00000814/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      55. ADE_train_00005799
+    </h3>
+    <p>Human entropy: 0.0000 T2C: 0.0000</p>
+    <p>Human prediction: Shopping and dining [INDOOR] (0)</p>
+    <p>Explainer prediction: Home or hotel [INDOOR] (2)</p>
+    <p>Model prediction: Home or hotel [INDOOR] (2)</p>
+    <image src="assets/group_2/ADE_train_00005799/ADE_train_00005799.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00005799/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      56. ADE_train_00011699
+    </h3>
+    <p>Human entropy: 0.0000 T2C: 0.0000</p>
+    <p>Human prediction: Forest, field, jungle [OUTDOOR] (8)</p>
+    <p>Explainer prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <p>Model prediction: Water, ice, snow [OUTDOOR] (6)</p>
+    <image src="assets/group_2/ADE_train_00011699/ADE_train_00011699.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00011699/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      57. ADE_train_00008598
+    </h3>
+    <p>Human entropy: 0.0000 T2C: 0.0000</p>
+    <p>Human prediction: Houses, cabins, gardens, and farms [OUTDOOR] (14)</p>
+    <p>Explainer prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <p>Model prediction: Commercial buildings, shops, markets, cities, and towns [OUTDOOR] (15)</p>
+    <image src="assets/group_2/ADE_train_00008598/ADE_train_00008598.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00008598/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+    <h3>
+      58. ADE_train_00019748
+    </h3>
+    <p>Human entropy: 0.0000 T2C: 0.0000</p>
+    <p>Human prediction: Workplace (office building, factory, lab, etc.) [INDOOR] (1)</p>
+    <p>Explainer prediction: Shopping and dining [INDOOR] (0)</p>
+    <p>Model prediction: Shopping and dining [INDOOR] (0)</p>
+    <image src="assets/group_2/ADE_train_00019748/ADE_train_00019748.jpg"></image>
+    <p>
+</p>
+    <image src="assets/group_2/ADE_train_00019748/unnormalized_probabilities.png"></image>
+    <p>
+
+</p>
+  </body>
+</html>
