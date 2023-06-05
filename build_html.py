@@ -15,7 +15,13 @@ from utils.visualizations import bar_graph
 from utils.df_utils import convert_string_columns
 
 scene_categories = read_lists('data/places365_categories/scene_categories.txt')
-
+group_id_description_dict = {
+    "group_1": "Model = Explainer = Human",
+    "group_2": "Model = Explainer != Human",
+    "group_3": "Model = Human != Explainer",
+    "group_4": "Explainer = Human != Model",
+    "group_5": "Model != Explainer; Explainer != Human; Human != Model"
+}
 def copy_file(src_path, 
               dst_dir,
               overwrite=True):
@@ -45,6 +51,8 @@ def save_pdist(p_dist,
         save_path=save_path)
 
 def multi_bars(data,
+               fig,
+               axs,
                titles=None,
                xlabels=None,
                ylabels=None,
@@ -59,7 +67,7 @@ def multi_bars(data,
     if ylabels is not None:
         assert len(ylabels) == n_rows
     
-    fig, axs = plt.subplots(nrows=n_rows, ncols=1)
+    # fig, axs = plt.subplots(nrows=n_rows, ncols=1)
     
     for idx, cur_data in enumerate(data):
         n_classes = len(cur_data)
@@ -83,11 +91,12 @@ def multi_bars(data,
         plt.savefig(save_path)
     if show:
         plt.show()
+     
     return fig, axs
     
 
 def save_assets(csv_paths, 
-                asset_save_dir, 
+                asset_paths_path, 
                 asset_src_root='data/broden1_224/images',
                 overwrite=True,
                 sort_column=None,
@@ -95,8 +104,8 @@ def save_assets(csv_paths,
     agent_types = ['human', 'explainer', 'model']
     asset_paths = {}
     for csv_idx, csv_path in enumerate(csv_paths):
-        if '.ipynb_checkpoints' in csv_path:
-            continue
+#         if '.ipynb_checkpoints' in csv_path:
+#             continue
             
         group_id = os.path.basename(csv_path).split('.')[0]
         
@@ -105,6 +114,7 @@ def save_assets(csv_paths,
             break
             
         df = pd.read_csv(csv_path)
+        asset_save_dir = os.path.dirname(asset_paths_path)
         group_asset_save_dir = os.path.join(asset_save_dir, group_id)
         # image_files = df['filename']
         group_assets = OrderedDict()
@@ -144,14 +154,21 @@ def save_assets(csv_paths,
                 data.append(row['{}_outputs'.format(agent)])
                 titles.append('Unnormalized {} probabilities'.format(agent))
             plot_save_path = os.path.join(image_save_dir, 'unnormalized_probabilities.png')
+            n_rows = len(data)
+            fig, axs = plt.subplots(nrows=n_rows, ncols=1)
             multi_bars(
                 data=data,
+                fig=fig,
+                axs=axs,
                 titles=titles,
                 xlabels=xlabels,
                 ylabels=ylabels,
                 fig_size=(6, 6),
                 save_path=plot_save_path,
                 show=False)
+            # Close figure
+            plt.close()
+            
             # Store asset paths for this file
             group_assets[image_id] = {
                 'image_path': image_dst_path,
@@ -164,11 +181,20 @@ def save_assets(csv_paths,
             }
         
         asset_paths[group_id] = group_assets
-    asset_save_path = os.path.join(asset_save_dir, 'asset_paths.json')
-    write_json(asset_paths, asset_save_path)
+    # asset_save_path = os.path.join(asset_save_dir, 'asset_paths.json')
+    write_json(asset_paths, asset_paths_path)
+    print("Saved asset paths to {}".format(asset_paths_path))
     return asset_paths
             
-    
+def check_assets_saved(csv_paths, asset_paths):
+    for csv_path in csv_paths:
+        group_id = os.path.basename(csv_path).split('.')[0]
+        df = pd.read_csv(csv_path)
+        group_assets = asset_paths[group_id]
+        if len(df) != len(group_assets):
+            return False
+    return True
+        
 def build_html(group_id,
                group_assets,
                html_dir,
@@ -189,21 +215,30 @@ def build_html(group_id,
             #     if debug and group_idx > 0:
             #         break
             #     group_assets = asset_paths[group_id]
+            
+            
             with air.h2():
-                air(group_id)
+                air("{}: {}".format(group_id, group_id_description_dict[group_id]))
+            # print the idx to category mappings
+            with air.h3():
+                air("Indices -> Category mappings")
+            for idx, scene_category in enumerate(scene_categories):
+                air.p(_t="{}: {}".format(idx, scene_category))
+            
+            # for each image, put image and plots
             for image_idx, (image_id, image_paths_dict) in enumerate(group_assets.items()):
                 if debug and image_idx > 5:
                     break
-
                 # Get relative paths for assets
                 for key, path in image_paths_dict.items():
                     if 'path' in key:
                         image_paths_dict[key] = os.path.relpath(path, html_dir)
+                # Print header and data
                 with air.h3():
                     air("{}. {}".format(image_idx+1, image_id))
                 air.p(_t='Human entropy: {:.4f} T2C: {:.4f}'.format(
                     image_paths_dict['entropy'], image_paths_dict['t2c']))
-                # Predictions 
+                # Print predictions 
                 human_pred = image_paths_dict['human_prediction']
                 explainer_pred = image_paths_dict['explainer_prediction']
                 model_pred = image_paths_dict['model_prediction']
@@ -225,7 +260,7 @@ def build_html(group_id,
 def save_html(csv_dir, 
                html_dir,
                filenames=None,
-               overwrite=True,
+               overwrite=False,
                sort_column=None,
                title='index.html',
                debug=True):
@@ -243,16 +278,24 @@ def save_html(csv_dir,
         
     # If assets don't already exist, save assets
     asset_save_dir = os.path.join(html_dir, 'assets')
-    if True: #not os.path.exists(asset_save_dir):
+    asset_paths_path = os.path.join(asset_save_dir, 'asset_paths.json')
+    if os.path.exists(asset_save_dir):
+        asset_paths = read_json(asset_paths_path)
+        assets_saved = check_assets_saved(
+            csv_paths=csv_paths,
+            asset_paths=asset_paths)
+    if not assets_saved or overwrite: #not os.path.exists(asset_save_dir):
+        print("Saving assets...")
         asset_paths = save_assets(
             csv_paths=csv_paths,
-            asset_save_dir=asset_save_dir,
+            asset_paths_path=asset_paths_path,
             overwrite=overwrite,
             sort_column=sort_column,
             debug=debug)
     else:
-        asset_paths = read_json('html/ade20k/groups/assets/asset_paths.json')
+        print("Loaded assets from {}".format(asset_paths_path))
     
+    # Iterate through each group's assets and create an HTML page
     for group_idx, group_id in enumerate(sorted(asset_paths.keys())):
         if debug and group_idx > 0:
             break
@@ -261,14 +304,13 @@ def save_html(csv_dir,
             group_id=group_id,
             group_assets=group_assets,
             html_dir=html_dir,
-            title=title)
+            title=title,
+            debug=debug)
     
-    html_file_save_path = os.path.join(html_dir, '{}.html'.format(group_id))
-    with open(html_file_save_path, 'wb') as f:
-        f.write(bytes(html_string, encoding='utf-8'))
-    print("Saved HTML file to {}".format(html_file_save_path))
-    # Create HTML page
-    # for csv_path 
+        html_file_save_path = os.path.join(html_dir, '{}.html'.format(group_id))
+        with open(html_file_save_path, 'wb') as f:
+            f.write(bytes(html_string, encoding='utf-8'))
+        print("Saved HTML file to {}".format(html_file_save_path))
     
     
 if __name__ == "__main__":
@@ -277,12 +319,14 @@ if __name__ == "__main__":
     parser.add_argument('--csv_dir', type=str, required=True)
     parser.add_argument('--filenames', nargs='+', default=[])
     parser.add_argument('--html_dir', type=str, default='html/ade20k/groups')
+    parser.add_argument('--overwrite', action='store_true')
+    parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
     
     save_html(
         csv_dir=args.csv_dir,
         html_dir=args.html_dir,
         filenames=args.filenames,
-        overwrite=True,
-        sort_column='entropy',
-        debug=True)
+        overwrite=args.overwrite,
+        sort_column=['entropy', 'unnormalized_top_2_confusion'],
+        debug=args.debug)
