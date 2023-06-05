@@ -4,6 +4,7 @@ checkpoints/
 *.pkl
 *.pth
 external_code/
+html/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
