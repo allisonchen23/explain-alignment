@@ -125,7 +125,7 @@ def show_image_rows(images,
             image = images[row][col]
             # For padding
             if image is not None:
-                # Matplotlib expects RGB channel to be in the back
+                # Matplotlib expects RGB channel to be in the rck
                 if image.shape[0] == 3:
                     image = np.transpose(image, (1, 2, 0))
 
@@ -297,7 +297,8 @@ def bar_graph(data,
     ax.legend()
     
     if fig_size is not None:
-        plt.figure(figsize=fig_size)
+        fig.set_figheight(fig_size[1])
+        fig.set_figheight(fig_size[0])
     plt.tight_layout()
 
     # If save_path is not None, save graph
