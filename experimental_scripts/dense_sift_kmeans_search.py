@@ -85,6 +85,10 @@ def dense_sift_kmeans_search(debug, step_size, sigma,
         
     n_init = 10
     inertias = []
+    if mini_batch_size > 0:
+        informal_log("Using mini-batch KMeans with batch size {}".format(mini_batch_size), log_path)
+    else:
+        informal_log("Using normal KMeans", log_path)
     # Run KMeans for each
     for k in ks:
         informal_log("[{}] Calculating k-means for k={}".format(
@@ -101,10 +105,13 @@ def dense_sift_kmeans_search(debug, step_size, sigma,
                     n_clusters=k,
                     n_init=n_init,
                     batch_size=mini_batch_size)
-        if debug:
-            kmeans = KMeans(n_clusters=k, n_init=n_init, max_iter=5)
+            
         else:
-            kmeans = KMeans(n_clusters=k, n_init=n_init)
+            if debug:
+                kmeans = KMeans(n_clusters=k, n_init=n_init, max_iter=5)
+            else:
+                kmeans = KMeans(n_clusters=k, n_init=n_init)
+                
         kmeans = kmeans.fit(flat_train_descriptors)
         informal_log("[{}] Inertia: {}".format(
             datetime.now().strftime(r'%m%d_%H%M%S'), kmeans.inertia_), log_path)
