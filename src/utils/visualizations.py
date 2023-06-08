@@ -435,6 +435,8 @@ def histogram(data,
 
 def plot(xs,
          ys,
+         fig=None,
+         ax=None,
          labels=None,
          alpha=1.0,
          marker_size=5,
@@ -458,6 +460,8 @@ def plot(xs,
             x values
         ys : list[list[float]]
             y values
+        ax : plt.subplot axis
+            optional axis to plot on
         labels : list[str]
             line labels for the legend
         alpha : int
@@ -496,14 +500,18 @@ def plot(xs,
     Returns:
         fig, ax
             figure and axes of plot
-    '''
-    plt.clf()
-
-    if fig_size is not None:
-        fig = plt.figure(figsize=fig_size)
+    '''    
+    if fig is None and ax is None:
+        plt.clf()
+        if fig_size is not None:
+            fig = plt.figure(figsize=fig_size)
+        else:
+            fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        
     else:
-        fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
+        assert fig is not None and ax is not None, "fig and ax must both or neither be None"
+    
     n_lines = len(xs)
     if labels is None:
         labels = [None for i in range(n_lines)]
