@@ -210,6 +210,10 @@ def bar_graph(data,
             if not None, the path to save bar graph to
     '''
     fig, ax = plt.subplots()
+    if type(data) == list and type(data[0]) == list:
+        data = np.array(data)
+    elif type(data) == list:
+        data = np.stack(data, axis=0)
     assert len(data.shape) == 2, "Expected 2D data, received {}D data.".format(len(data.shape))
     n_groups, n_classes = data.shape
     # If no errors passed,
