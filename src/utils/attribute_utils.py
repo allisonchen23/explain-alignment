@@ -115,7 +115,7 @@ def hyperparam_search(train_features,
         clf = LogisticRegression(C=c, **logistic_regression_args)
         clf.fit(train_features, train_labels)
         score = clf.score(val_features, val_labels)
-        if score>best_acc:
+        if score > best_acc:
             best_acc = score
             best_clf = clf
             informal_log("Best accuracy: {} Regularization: {}".format(score, c), log_path)

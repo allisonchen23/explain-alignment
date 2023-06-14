@@ -1,6 +1,7 @@
 import torch
 import numpy as np
-from sklearn.metrics import confusion_matrix
+# from sklearn.metrics import confusion_matrix
+from sklearn import metrics as sklearn_metrics
 
 def compute_metrics(metric_fns,
                     prediction,
@@ -48,7 +49,7 @@ def compute_metrics(metric_fns,
 
     # Make confusion matrix (rows are true, columns are predicted)
     assert prediction.shape[0] == target.shape[0]
-    cmat = confusion_matrix(
+    cmat = sklearn_metrics.confusion_matrix(
         target,
         prediction,
         labels=unique_labels)
@@ -86,6 +87,9 @@ def compute_metrics(metric_fns,
             continue
         elif metric_name == 'RMSE':
             metrics[metric_name] = RMSE(prediction, target)
+            continue
+        elif metric_name == 'neg_log_loss':
+            metrics[metric_name] = neg_log_loss(prediction, target)
             continue
 
         # Calculate metric & store
@@ -250,6 +254,24 @@ def predicted_class_distribution(prediction, n_classes=10):
 
     class_distribution = np.bincount(prediction, minlength=n_classes)
     return class_distribution
+
+def neg_log_loss(prediction, target):
+    '''
+    Calculate the negative log loss aka binary cross entropy aka logistic loss
+    '''
+    assert len(prediction.shape) == 1, "Prediction must be 1-dim array, received {}-shape array.".format(prediction.shape)
+    assert len(target.shape) == 1, "Target must be 1-dim array, received {}-shape array.".format(target.shape)
+
+    # Convert to numpy arrays
+    if torch.is_tensor(prediction):
+        prediction = prediction.cpu().numpy()
+    if torch.is_tensor(target):
+        target = target.cpu().numpy()
+    
+    bce = sklearn_metrics.log_loss(
+        y_true=target,
+        y_pred=prediction)
+    return bce
 
 def RMSE(prediction, target):
     assert len(prediction.shape) == 1, "Prediction must be 1-dim array, received {}-shape array.".format(prediction.shape)
