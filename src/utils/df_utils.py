@@ -33,6 +33,30 @@ def string_to_numpy(string, verbose=False):
 
     return np.array(string)
 
+def string_to_list(string, verbose=False):
+    '''
+    Given a string, convert it to a list of strings
+
+    Arg(s):
+        string : str
+            string assumed in format of numbers separated by spaces, with '[' ']' on each end
+        verbose : bool
+            whether or not to print error messages
+    Returns:
+        np.array
+    '''
+    if type(string) != str:
+        return string
+    original_string = string
+
+    if string[0] == '[':
+        string = string[1:]
+    if string[-1] == ']':
+        string = string[:-1]
+
+    string = string.split()
+    return string
+
 def convert_string_columns(df, columns=None):
     '''
     Given a dataframe, convert columns to numpy if they are strings
