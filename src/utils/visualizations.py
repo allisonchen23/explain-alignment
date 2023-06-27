@@ -764,3 +764,42 @@ def _plot_highlight(ax,
                 format_str,
                 zorder=zorder)
     return ax
+
+def pie_chart(sizes,
+              labels,
+              fig=None,
+              ax=None,
+              pct_distance=0.75,
+              label_distance=1.1,
+              relative=True,
+              colors=None,
+              save_path=None,
+              show=True):
+    if fig is None or ax is None:
+        plt.clf()
+        fig, ax = plt.subplots()
+    if relative:
+        autopct = '%1.2f%%'
+        
+    # Check lengths of data passed in
+    assert len(sizes) == len(labels), "Received {} length array for sizes and {} length array for labels".format(
+        len(sizes), len(labels))
+    if colors is not None:
+        assert len(sizes) == len(colors), "Received invalid length array for colors ({}). Expected {}.".format(
+            len(colors), len(sizes))
+    # Plot pie chart
+    ax.pie(
+        sizes,
+        labels=labels,
+        pctdistance=pct_distance,
+        labeldistance=label_distance,
+        autopct=autopct,
+        colors=colors)
+    
+    if save_path is not None:
+        plt.savefig(save_path)
+    
+    if show:
+        plt.show()
+        
+    return fig, ax
