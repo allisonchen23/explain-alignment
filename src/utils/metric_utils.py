@@ -6,7 +6,11 @@ import sys, os
 
 sys.path.insert(0, 'src')
 from utils.attribute_utils import hyperparam_search
+from utils.visualizations import bar_graph
+from utils.utils import informal_log
 import model.metric as module_metric
+
+
 def top_2_confusion(soft_labels):
     '''
     Given soft label distribution, calculate difference between top 2 labels
@@ -212,3 +216,162 @@ def run_feature_importance_trial(train_rows,
     cur_data['coefficient_p'] = coefficient_p.tolist()[0]
     
     return cur_data, trial_key
+
+def correlated_variables(train_rows,
+                         x_names):
+    # Calculate Spearman correlation coefficient with all 9 variables
+    corr = stats.spearmanr(train_rows[x_names].to_numpy())
+    n_ivs = len(x_names)
+    low_corrs = []
+    med_corrs = []
+    high_corrs = []
+    
+    for idx1 in range(n_ivs-1):
+        for idx2 in range(idx1+1, n_ivs):
+            var1 = x_names[idx1]
+            var2 = x_names[idx2]
+
+            cur_corr = corr.statistic[idx1][idx2]
+            cur_p = corr.pvalue[idx1][idx2]
+            cur_data = (var1, var2, cur_corr, cur_p)
+            if np.abs(cur_corr) < 0.3:
+                low_corrs.append(cur_data)
+            elif np.abs(cur_corr) < 0.6:
+                med_corrs.append(cur_data)
+            else:
+                high_corrs.append(cur_data)
+
+
+    print("Low correlation pairs (<0.3)")
+    low_corr_set = set()
+    for row in low_corrs:
+        print(row)
+        low_corr_set.add((row[0], row[1]))
+
+    print("\nModerate correlation pairs (0.3<= x < 0.6)")
+    med_corr_set = set()
+    for row in med_corrs:
+        print(row)
+        med_corr_set.add((row[0], row[1]))
+
+    print("\nHigh correlation pairs (>=0.6)")
+    high_corr_set = set()
+    for row in high_corrs:
+        print(row)
+        high_corr_set.add((row[0], row[1]))
+
+    return low_corr_set, med_corr_set, high_corr_set
+
+
+def filter_df(df,
+              ivs=None,
+              dv=None):
+    if ivs is not None:
+        assert type(ivs) == list
+        assert type(ivs[0]) == str
+        for iv in ivs:
+            df = df[df['iv'].str.contains(iv, na=False)]
+    if dv is not None:
+        assert type(dv) == str
+        df = df[df['dv'].str.contains(dv)]
+        
+    return df
+
+def string_to_list(string, 
+                   dtype='string',
+                   verbose=False):
+    '''
+    Given a string, convert it to a list of strings
+
+    Arg(s):
+        string : str
+            string assumed in format of numbers separated by spaces, with '[' ']' on each end
+        verbose : bool
+            whether or not to print error messages
+    Returns:
+        list
+    '''
+    if type(string) != str:
+        return string
+    original_string = string
+
+    if string[0] == '[':
+        string = string[1:]
+    if string[-1] == ']':
+        string = string[:-1]
+
+    list_string = string.split(", ")
+    if dtype == 'str':
+        for idx, s in enumerate(list_string):
+            if s[0] == "'":
+                list_string[idx] = s[1:]
+            if s[-1] == "'":
+                list_string[idx] = s[:-1]
+    elif dtype == 'int' or dtype == 'float':
+        list_string = [eval(i) for i in list_string]
+    
+    return list_string
+
+def print_summary(df, 
+                  metrics=['accuracy', 'precision', 'recall', 'f1', 'neg_log_loss'],
+                  graph_metric=None,
+                  print_coefficient_importance=False,
+                  log_path=None):
+    sensitivity_metrics = ['{}_sensitivity_mean'.format(metric) for metric in metrics]
+
+    for idx, row in df.iterrows():
+        informal_log("Row index {}".format(idx), log_path)
+        informal_log("IV: {} \nDV: {}".format(row['iv'], row['dv']), log_path)
+        informal_log("Metrics", log_path)
+        ivs = string_to_list(row['iv'])
+        
+        # Print metrics and the variable sensitivity
+        for metric in metrics:
+            informal_log("\t{}: {:.4f}".format(metric, row[metric]), log_path)
+            metric_sensitivities = string_to_list(
+                row['{}_sensitivity_mean'.format(metric)],
+                dtype='float')
+            for iv, metric_sensitivity in zip(ivs, metric_sensitivities):
+                informal_log("\t\t {} sensitivity: {:.4f}".format(iv, metric_sensitivity), log_path)
+                
+        # Print coefficient importance scores and p-values
+        if print_coefficient_importance:
+            informal_log("Coefficient significance:", log_path)
+            coefficient_ts = string_to_list(row['coefficient_t'], dtype='float')
+            coefficient_ps = string_to_list(row['coefficient_p'], dtype='float')
+            for idx, iv in enumerate(ivs):
+                coefficient_t = coefficient_ts[idx]
+                coefficient_p = coefficient_ps[idx]
+
+                informal_log("\t{} t: {:.4f} p-value: {:.4f}".format(iv, coefficient_t, coefficient_p), log_path)
+
+    
+def plot_metric_v_inputs(df, 
+                         ivs,
+                         dv,
+                         graph_metric):
+    assert graph_metric in df.columns
+    labels = []
+    metric_ys = []
+        
+    for idx, row in df.iterrows():
+        ivs = string_to_list(row['iv'])
+        
+        iv_abbreviations = ''
+        for iv in ivs:
+            iv = iv.replace("'", "")
+            iv = iv.split('_')
+            for word in iv:
+                iv_abbreviations += word[0]
+            iv_abbreviations += '_'
+        iv_abbreviations = iv_abbreviations[:-1]
+        labels.append(iv_abbreviations)
+        metric_ys.append(row[graph_metric])
+
+    bar_graph(
+        data=np.array([metric_ys]),
+        labels=labels,
+        xlabel='Source of IV',
+        ylabel=graph_metric,
+        title='{} for {}'.format(graph_metric, dv),
+        xlabel_rotation=30)
