@@ -2,16 +2,18 @@ import numpy as np
 import sklearn
 from sklearn import inspection
 from scipy import stats
+import pandas as pd
 import sys, os
 
 sys.path.insert(0, 'src')
 from utils.attribute_utils import hyperparam_search
-from utils.visualizations import bar_graph
+from utils.visualizations import bar_graph, plot
 from utils.utils import informal_log
 import model.metric as module_metric
 
 
-def top_2_confusion(soft_labels):
+def top_2_confusion(soft_labels,
+                    mode='difference'):
     '''
     Given soft label distribution, calculate difference between top 2 labels
 
@@ -23,14 +25,21 @@ def top_2_confusion(soft_labels):
         confusion : N-dim np.array
             confusion for each sample
     '''
+    available_modes = ['ratio', 'difference']
+    assert mode in available_modes, "mode must be one of {}".format(available_modes)
     # Sort soft labels ascending
     sorted_soft_labels = np.sort(soft_labels, axis=-1)
     # Calculate difference of p(x) for top 2 classes
     top_2_difference = sorted_soft_labels[:, -1] - sorted_soft_labels[:, -2]
     # Confusion = 1 - difference (higher is worse)
-    top_2_confusion = 1 - top_2_difference
+    if mode == 'difference':
+        top_2_confusion = 1 - top_2_difference
+    elif mode == 'ratio':
+        top_logit = sorted_soft_labels[:, -1]
+        top_2_confusion = top_2_difference / top_logit
 
     return top_2_confusion
+
 
 def add_confidence(df, 
                    agent, 
@@ -97,25 +106,73 @@ def calculate_bin_disagreement(bin_rows,
         disagreements.append(disagreement)
     return disagreements
 
-def calculate_bin_agreement(bin_rows,
-                               agent1,
-                               agent2):
-    agents = ['human', 'explainer', 'model']
-    assert agent1 in agents
-    assert agent2 in agents
+# def calculate_bin_agreement(bin_rows,
+#                                agent1,
+#                                agent2):
+#     agents = ['human', 'explainer', 'model']
+#     assert agent1 in agents
+#     assert agent2 in agents
     
+#     agreements = []
+#     n_samples = []
+#     for rows in bin_rows:
+#         assert '{}_predictions'.format(agent1) in rows.columns and \
+#             '{}_predictions'.format(agent2) in rows.columns
+#         agent1_preds = rows['{}_predictions'.format(agent1)].to_numpy()
+#         agent2_preds = rows['{}_predictions'.format(agent2)].to_numpy()
+#         agreement = np.count_nonzero(agent1_preds == agent2_preds) / len(rows)
+#         agreements.append(agreement)
+        
+#         n_samples.append(len(rows))
+    
+#     agreements = np.array(agreements)
+#     n_samples = np.array(n_samples)
+#     agreement_stds = np.sqrt(agreements * (1 - agreements))
+#     agreement_ses = agreement_stds / np.sqrt(n_samples)
+#     return agreements, agreement_stds, agreement_ses
+
+def calculate_bin_agreement(bin_rows,
+                            column_name=None,
+                            agent1=None,
+                            agent2=None):
+    '''
+    
+    Arg(s):
+        bin_rows : list[pd.DataFrame]
+            list of pandas dataframe representing rows to bin
+        column_name : str or None
+    '''
     agreements = []
     n_samples = []
-    for rows in bin_rows:
-        assert '{}_predictions'.format(agent1) in rows.columns and \
-            '{}_predictions'.format(agent2) in rows.columns
-        agent1_preds = rows['{}_predictions'.format(agent1)].to_numpy()
-        agent2_preds = rows['{}_predictions'.format(agent2)].to_numpy()
-        agreement = np.count_nonzero(agent1_preds == agent2_preds) / len(rows)
-        agreements.append(agreement)
-        
-        n_samples.append(len(rows))
     
+    if column_name is not None:
+        for rows in bin_rows:
+            assert column_name in rows.columns
+            agreement = rows[column_name]
+            # check that it is all binary values
+            unique_vals = set(pd.unique(agreement))
+            assert {0} == unique_vals or {1} == unique_vals or {0, 1} == unique_vals, \
+                "Expected binary values in agreement column. Received {}".format(unique_vals)
+            
+            agreements.append(np.count_nonzero(agreement) / len(rows))
+            n_samples.append(len(rows))
+            
+    else:
+        assert agent1 is not None and agent2 is not None, "If no column passed, must pass agent1 and agent2 in"
+        agents = ['human', 'explainer', 'model']
+        assert agent1 in agents
+        assert agent2 in agents
+        
+        for rows in bin_rows:
+            assert '{}_predictions'.format(agent1) in rows.columns and \
+                '{}_predictions'.format(agent2) in rows.columns
+            agent1_preds = rows['{}_predictions'.format(agent1)].to_numpy()
+            agent2_preds = rows['{}_predictions'.format(agent2)].to_numpy()
+            agreement = np.count_nonzero(agent1_preds == agent2_preds) / len(rows)
+            agreements.append(agreement)
+
+            n_samples.append(len(rows))
+
     agreements = np.array(agreements)
     n_samples = np.array(n_samples)
     agreement_stds = np.sqrt(agreements * (1 - agreements))
@@ -182,7 +239,12 @@ def run_feature_importance_trial(train_rows,
     print("Coefficients: {}".format(clf.coef_))
     # Obtain predictions on validation set
     val_predictions = clf.predict(val_x)
-
+    
+    # Print count of unique predictions
+    unique, unique_counts = np.unique(val_predictions, return_counts=True)
+    print("Predictions:")
+    for val, count in zip(unique, unique_counts):
+        print("{}: {:.2f}".format(val, 100 * count / len(val_predictions)))
     # Calculate metrics
     metrics = module_metric.compute_metrics(
         metric_fns=metric_fns,
@@ -215,7 +277,11 @@ def run_feature_importance_trial(train_rows,
     cur_data['coefficient_t'] = coefficient_t.tolist()[0]
     cur_data['coefficient_p'] = coefficient_p.tolist()[0]
     
-    return cur_data, trial_key
+    return {
+        'clf': clf,
+        'cur_data': cur_data, 
+        'trial_key': trial_key
+    }
 
 def correlated_variables(train_rows,
                          x_names):
@@ -375,3 +441,76 @@ def plot_metric_v_inputs(df,
         ylabel=graph_metric,
         title='{} for {}'.format(graph_metric, dv),
         xlabel_rotation=30)
+    
+def plot_alignment(df,
+                   confusion_names,
+                   n_bins,
+                   fig=None,
+                   ax=None,
+                   alignment_col_name=None,
+                   agent1=None,
+                   agent2=None,
+                   plot_xerr=True,
+                   plot_yerr=True):
+    xlabel = 'Scaled {} (n_bins={})'.format(confusion_names[0], n_bins)
+    bin_rows, iv_means, iv_stds, iv_ses = sort_and_bin_df(
+        df=df,
+        sort_columns=confusion_names, 
+        n_bins=n_bins)
+    # Scale confusion/confidence to be between [0, 1]
+    min_iv = np.amin(iv_means)
+    max_iv = np.amax(iv_means)
+    iv_means = (iv_means - min_iv) / (max_iv - min_iv)
+
+    # Calculate agreement in each bin with STD and SEs
+    cur_agreement, agreement_stds, agreement_ses = calculate_bin_agreement(
+            bin_rows=bin_rows,
+            column_name=alignment_col_name,
+            agent1=agent1,
+            agent2=agent2)
+    # confusions.append(iv_means)
+    # agreements.append(cur_agreement)
+
+    # Calculate pearson's correlation
+    pearsons = stats.pearsonr(
+        x=iv_means,
+        y=cur_agreement)
+    
+    slope, yint, r, p, std_err = stats.linregress(iv_means, cur_agreement)
+    r_squared = r ** 2
+    if alignment_col_name is not None:
+        ylabel = '% samples of {}'.format(alignment_col_name)
+        title = '{} vs {}'.format(alignment_col_name, confusion_names[0])
+    else:
+        ylabel = '% of samples of {}-{} alignment'.format(agent1, agent2)
+        title = '{}-{} alignment vs {}'.format(agent1, agent2, confusion_names[0])
+    fig, ax = plot(
+        xs=[iv_means],
+        ys=[cur_agreement],
+        fig=fig,
+        ax=ax,
+        xlabel=xlabel,
+        ylabel=ylabel,
+        ylimits=[0, 1.1],
+        xlimits=[-0.1, 1.1],
+        labels=['Pearsons: {:.3f} (p={:.6f})\ny={:.2f}x+{:.2f}; R-squared: {:.3f}'.format(
+            pearsons.statistic, pearsons.pvalue, slope, yint, r_squared)],
+        title=title,
+        show=False)
+
+    if plot_xerr:
+        ax.errorbar(
+            x=iv_means,
+            y=cur_agreement,
+            xerr=iv_stds,
+            ecolor='black',
+            capsize=3.0)
+    if plot_yerr:
+        ax.errorbar(
+            x=iv_means,
+            y=cur_agreement,
+            yerr=agreement_ses,
+            ecolor='black',
+            capsize=3.0)
+    
+    return ax, iv_means, iv_stds, cur_agreement, agreement_ses, ylabel

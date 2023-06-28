@@ -1,0 +1,63 @@
+{
+    "name": "",
+    "n_gpu": 1,
+    "method": "train",
+    "arch": {
+        "type": "LinearLayers",
+        "args": {
+            "n_in_features": 3072,
+            "n_classes": 10,
+            "n_hidden_features": [],
+            "bias": true,
+            "activation": null
+        }
+    },
+    "dataset": {
+        "type": "KDDataset",
+        "args": {
+            "input_features_path": "data/cifar10-processed/flattened_images.pth",
+            "labels_path": "saved/cifar10/resnet18/outputs_predictions.pth",
+            "out_type": "probabilities"
+        }
+    },
+    "data_loader": {
+        "args": {
+            "batch_size": 256,
+            "num_workers": 8
+        }
+    },
+    "optimizer": {
+        "type": "SGD",
+        "args": {
+            "lr": 0.01,
+            "weight_decay": 0
+        }
+    },
+    "loss": "cross_entropy",
+    "metrics": [
+        "accuracy",
+        "RMSE",
+        "per_class_accuracy",
+        "precision",
+        "recall",
+        "f1",
+        "predicted_class_distribution"
+    ],
+    "lr_scheduler": {
+        "type": "StepLR",
+        "args": {
+            "step_size": 101,
+            "gamma": 0.5
+        }
+    },
+    "trainer": {
+        "epochs": 100,
+        "save_dir": "saved/cifar10/resnet18/explainer/pixels/model_soft_labels/hparam_search/cross_entropy",
+        "save_period": 1,
+        "verbosity": 2,
+        "monitor": "max val_accuracy",
+        "early_stop": 20,
+        "save_val_results": true,
+        "tensorboard": true
+    }
+}

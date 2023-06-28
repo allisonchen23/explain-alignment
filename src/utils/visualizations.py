@@ -60,7 +60,7 @@ def show_image_rows(images,
                     font_size=12,
                     subplot_padding=None,
                     save_path=None,
-                    show_figure=True):
+                    show=True):
     """
     Display rows of images
 
@@ -166,7 +166,7 @@ def show_image_rows(images,
     if save_path is not None:
         plt.savefig(save_path, bbox_inches='tight')
 
-    if show_figure:
+    if show:
         plt.show()
 
     return fig, axs

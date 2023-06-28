@@ -5,7 +5,7 @@
     "arch": {
         "type": "LinearLayers",
         "args": {
-            "n_in_features": 2000,
+            "n_in_features": 500,
             "n_classes": 10,
             "n_hidden_features": [],
             "bias": true,
@@ -15,25 +15,25 @@
     "dataset": {
         "type": "KDDataset",
         "args": {
-            "input_features_path": "saved/cifar10/sift_32_32_sigma1.6/dense_stride_2/minibatch_kmeans/2000means/histogram_vectors.pth",
+            "input_features_path": "saved/cifar10/sift_32_32_sigma1.6/dense_stride_2/minibatch_kmeans/500means/histogram_vectors.pth",
             "labels_path": "saved/cifar10/resnet18/outputs_predictions.pth",
             "out_type": "probabilities"
         }
     },
     "data_loader": {
-        "args":{
+        "args": {
             "batch_size": 256,
             "num_workers": 8
         }
     },
     "optimizer": {
         "type": "SGD",
-        "args":{
-            "lr": 5e-2,
+        "args": {
+            "lr": 0.05,
             "weight_decay": 0
         }
     },
-    "loss": "RMSE",
+    "loss": "cross_entropy",
     "metrics": [
         "accuracy",
         "RMSE",
@@ -52,7 +52,7 @@
     },
     "trainer": {
         "epochs": 100,
-        "save_dir": "saved/cifar10/resnet18/explainer/sift_descriptor_histogram/cifar32_32_sigma1.6/dense_stride_2/minibatch_kmeans/2000means/model_soft_labels",
+        "save_dir": "saved/cifar10/resnet18/explainer/sift_descriptor_histogram/cifar32_32_sigma1.6/dense_stride_2/minibatch_kmeans/500means/model_soft_labels/cross_entropy",
         "save_period": 1,
         "verbosity": 2,
         "monitor": "max val_accuracy",

@@ -33,7 +33,7 @@
             "amsgrad": false
         }
     },
-    "loss": "cross_entropy",
+    "loss": "RMSE",
     "metrics": [
         "accuracy",
         "per_class_accuracy",
@@ -52,7 +52,7 @@
     "trainer": {
         "epochs": 50,
 
-        "save_dir": "saved/PlacesCategoryClassification/0510_102912/ADE20K_predictions/saga/KD_baseline_explainer/hparam_search",
+        "save_dir": "saved/PlacesCategoryClassification/0510_102912/ADE20K_predictions/saga/KD_baseline_explainer/RMSE_loss",
         "save_period": 1,
         "verbosity": 2,
 
