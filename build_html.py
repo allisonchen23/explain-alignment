@@ -10,8 +10,8 @@ import shutil
 from tqdm import tqdm
 
 sys.path.insert(0, 'src')
-from utils.utils import ensure_dir, write_json, read_json, read_lists
-from utils.visualizations import bar_graph
+from utils.utils import ensure_dir, write_json, read_json, read_lists, load_image
+from utils.visualizations import bar_graph, make_grid, show_image_rows
 from utils.df_utils import convert_string_columns
 
 scene_categories = read_lists('data/places365_categories/scene_categories.txt')
@@ -94,6 +94,98 @@ def multi_bars(data,
      
     return fig, axs
     
+def save_probabilities_bar_graph(row,
+                                 agent_types=['human', 'explainer', 'model'],
+                                 save_path=None,
+                                 show=False,
+                                 fig=None,
+                                 axs=None):
+    if fig is None and axs is None:
+        fig, axs = plt.subplots(nrows=len(agent_types), ncols=2, figsize=(8, 6))
+    data = []
+    titles = []
+    xlabels = [['Classes', 'Classes'] for i in range(len(agent_types))]
+    ylabels = [['Unnormalized Probabilities', 'Normalized Probabilities'] for i in range(len(agent_types))]
+    # store [unnormalized, normalized] probabilities
+    for agent in agent_types:
+        data.append([row['{}_outputs'.format(agent)], row['{}_probabilities'.format(agent)]])
+        titles.append(['Unnormalized {} probabilities'.format(agent), 'Normalized {} probabilities'.format(agent)])
+        
+    # plot_save_path = os.path.join(image_save_dir, 'probabilities.png')
+    
+    # Left column is unnormalized probabilities
+    # Right column is normalized probabilities
+    for row_idx, row in enumerate(axs):
+        for col_idx, ax in enumerate(row):
+            cur_data = data[row_idx][col_idx]
+            cur_title = titles[row_idx][col_idx]
+            cur_xlabel = xlabels[row_idx][col_idx]
+            cur_ylabel = ylabels[row_idx][col_idx]
+            
+            n_classes = len(cur_data)
+            x_pos = np.arange(n_classes)
+            axs[row_idx][col_idx].bar(
+                x_pos,
+                cur_data)
+
+            if titles is not None:
+                axs[row_idx][col_idx].set_title(cur_title)
+            if xlabels is not None:
+                axs[row_idx][col_idx].set_xlabel(cur_xlabel)
+            if ylabels is not None:
+                axs[row_idx][col_idx].set_ylabel(cur_ylabel)
+            if col_idx == 1 or row_idx == 0:
+                ax.set_ylim((0, 1))
+            else:
+                ax.set_ylim((-5, 6))
+                
+    plt.tight_layout()
+    if save_path is not None:
+        ensure_dir(os.path.dirname(save_path))
+        plt.savefig(save_path)
+    if show:
+        plt.show()
+        
+    return fig, axs
+
+def plot_output_metrics(row,
+                        agent_types=['human', 'explainer', 'model'],
+                        output_metrics=['top_confidence', 'entropy', 't2c', 'scaled_t2c', 't2c_ratio'],
+                        save_path=None,
+                        show=False):
+    n_cols = len(output_metrics)
+    fig, axs = plt.subplots(nrows=1, ncols=n_cols, figsize=(1.5*n_cols,3))
+    
+    for ax_idx, ax in enumerate(axs):
+        data = []
+        labels = []
+        xlabel = 'Agent'
+        ylabel = output_metrics[ax_idx]
+        title = '{}'.format(output_metrics[ax_idx])
+        for agent in agent_types:
+            metric_name = '{}_{}'.format(agent, output_metrics[ax_idx])
+            data.append(row[metric_name])
+        x_pos = np.arange(len(agent_types))
+        ax.bar(x_pos, data)
+        ax.set_title(title)
+        ax.set_ylabel(ylabel)
+        ax.set_xlabel(xlabel)
+        ax.set_xticks(x_pos, agent_types)
+        plt.setp(ax.get_xticklabels(), rotation=30)
+        
+        if 'confidence' in output_metrics[ax_idx]:
+            ax.set_ylim((0, 1))
+        elif 'entropy' in output_metrics[ax_idx]:
+            ax.set_ylim((0, 2.75))
+        
+    plt.tight_layout()
+    if save_path is not None:
+        ensure_dir(os.path.dirname(save_path))
+        plt.savefig(save_path)
+    if show:
+        plt.show() 
+    
+    return fig, axs
 
 def save_assets(csv_paths, 
                 asset_paths_path, 
@@ -103,10 +195,10 @@ def save_assets(csv_paths,
                 debug=True):
     agent_types = ['human', 'explainer', 'model']
     asset_paths = {}
+    
+    image_root = 'data/broden1_224/images'
+    images_per_row = 15
     for csv_idx, csv_path in enumerate(csv_paths):
-#         if '.ipynb_checkpoints' in csv_path:
-#             continue
-            
         group_id = os.path.basename(csv_path).split('.')[0]
         
         print("[{}] Processing file {}/{}".format(datetime.now().strftime(r"%m%d_%H%M%S"), csv_idx+1, len(csv_paths)))
@@ -116,15 +208,38 @@ def save_assets(csv_paths,
         df = pd.read_csv(csv_path)
         asset_save_dir = os.path.dirname(asset_paths_path)
         group_asset_save_dir = os.path.join(asset_save_dir, group_id)
-        # image_files = df['filename']
         group_assets = OrderedDict()
+        
+        
+        
         # Convert str -> numpy array
         df = convert_string_columns(
             df, 
-            columns=['{}_outputs'.format(agent) for agent in agent_types])
+            columns=['{}_outputs'.format(agent) for agent in agent_types] + 
+                     ['{}_probabilities'.format(agent) for agent in agent_types])
         
         if sort_column is not None:
             df = df.sort_values(sort_column, ascending=False)
+            
+        # Display all images in group in one image
+        image_names = df['filename']
+        images = []
+        for image_name in image_names:
+            image = load_image(os.path.join(image_root, image_name))
+            images.append(image)
+        all_image_save_path = os.path.join(group_asset_save_dir, 'all_images.png')
+        images = make_grid(
+            flattened=images,
+            items_per_row=images_per_row)
+        fig_title = 'All images in {} sorted by {}'.format(group_id, sort_column)
+        show_image_rows(
+            images,
+            save_path=all_image_save_path,
+            image_size=(1, 1),
+            figure_title=fig_title,
+            show=False)
+        
+        # Store per-image assets
         for row_idx, (_, row) in enumerate(tqdm(df.iterrows(), total=len(df))):
         # for image_idx, image_file in enumerate(tqdm(image_files)):
             image_file = row['filename']
@@ -145,43 +260,42 @@ def save_assets(csv_paths,
                 dst_dir=image_save_dir,
                 overwrite=overwrite)
             
-            # Save unnormalized probability distributions
-            data = []
-            titles = []
-            xlabels = ['Classes' for i in range(len(agent_types))]
-            ylabels = ['Unnormalized Probabilities' for i in range(len(agent_types))]
-            for agent in agent_types:
-                data.append(row['{}_outputs'.format(agent)])
-                titles.append('Unnormalized {} probabilities'.format(agent))
-            plot_save_path = os.path.join(image_save_dir, 'unnormalized_probabilities.png')
-            n_rows = len(data)
-            fig, axs = plt.subplots(nrows=n_rows, ncols=1)
-            multi_bars(
-                data=data,
-                fig=fig,
-                axs=axs,
-                titles=titles,
-                xlabels=xlabels,
-                ylabels=ylabels,
-                fig_size=(6, 6),
-                save_path=plot_save_path,
+            # Save unnormalized & normalized probability distributions
+            output_dist_plot_save_path = os.path.join(image_save_dir, 'probabilities.png')
+            fig, axs = save_probabilities_bar_graph(
+                row=row,
+                agent_types=agent_types,
+                save_path=output_dist_plot_save_path,
                 show=False)
+            
             # Close figure
             plt.close()
             
+            # Save bar graphs of top confidence, entropy, and t2c
+            output_metrics_plot_save_path = os.path.join(image_save_dir, 'output_metrics.png')
+            plot_output_metrics(
+                row=row,
+                agent_types=agent_types,
+                output_metrics=['top_confidence', 'entropy', 't2c', 'scaled_t2c', 't2c_ratio'],
+                save_path=output_metrics_plot_save_path,
+                show=False)
+            
+            plt.close()
             # Store asset paths for this file
             group_assets[image_id] = {
                 'image_path': image_dst_path,
-                'plot_path': plot_save_path,
-                'entropy': row['entropy'],
-                't2c': row['unnormalized_top_2_confusion'],
+                'plot_path': output_dist_plot_save_path,
+                'output_metrics_path': output_metrics_plot_save_path,
+                'entropy': row['human_entropy'],
+                't2c': row['human_t2c'],
                 'human_prediction': row['human_predictions'],
                 'model_prediction': row['model_predictions'],
                 'explainer_prediction': row['explainer_predictions']
             }
-        
+            
+        group_assets['all_images'] = all_image_save_path
         asset_paths[group_id] = group_assets
-    # asset_save_path = os.path.join(asset_save_dir, 'asset_paths.json')
+
     write_json(asset_paths, asset_paths_path)
     print("Saved asset paths to {}".format(asset_paths_path))
     return asset_paths
@@ -197,6 +311,7 @@ def check_assets_saved(csv_paths, asset_paths):
         
 def build_html(group_id,
                group_assets,
+               all_images_path,
                html_dir,
                title,
                debug=True):
@@ -211,12 +326,6 @@ def build_html(group_id,
             
         # HTML Body
         with air.body():
-            # for group_idx, group_id in enumerate(sorted(asset_paths.keys())):
-            #     if debug and group_idx > 0:
-            #         break
-            #     group_assets = asset_paths[group_id]
-            
-            
             with air.h2():
                 air("{}: {}".format(group_id, group_id_description_dict[group_id]))
             # print the idx to category mappings
@@ -225,6 +334,11 @@ def build_html(group_id,
             for idx, scene_category in enumerate(scene_categories):
                 air.p(_t="{}: {}".format(idx, scene_category))
             
+            # add all images
+            if all_images_path is not None:
+                all_images_path = os.path.relpath(all_images_path, html_dir)
+                air.image(src=all_images_path)
+                air.p(_t="\n")
             # for each image, put image and plots
             for image_idx, (image_id, image_paths_dict) in enumerate(group_assets.items()):
                 if debug and image_idx > 5:
@@ -252,6 +366,8 @@ def build_html(group_id,
                 air.image(src=image_paths_dict['image_path'])
                 air.p(_t="\n")
                 air.image(src=image_paths_dict['plot_path'])
+                air.p(_t="\n")
+                air.image(src=image_paths_dict['output_metrics_path'])
                 air.p(_t="\n\n")
                     
     html_string = str(air)
@@ -279,30 +395,43 @@ def save_html(csv_dir,
     # If assets don't already exist, save assets
     asset_save_dir = os.path.join(html_dir, 'assets')
     asset_paths_path = os.path.join(asset_save_dir, 'asset_paths.json')
-    if os.path.exists(asset_save_dir):
-        asset_paths = read_json(asset_paths_path)
-        assets_saved = check_assets_saved(
-            csv_paths=csv_paths,
-            asset_paths=asset_paths)
-    if not assets_saved or overwrite: #not os.path.exists(asset_save_dir):
-        print("Saving assets...")
+    if overwrite:
+        print("Overwriting assets...")
         asset_paths = save_assets(
             csv_paths=csv_paths,
             asset_paths_path=asset_paths_path,
             overwrite=overwrite,
             sort_column=sort_column,
             debug=debug)
+    elif os.path.exists(asset_save_dir):
+        asset_paths = read_json(asset_paths_path)
+        assets_saved = check_assets_saved(
+            csv_paths=csv_paths,
+            asset_paths=asset_paths)
+        if not assets_saved:
+            print("Saving assets...")
+            asset_paths = save_assets(
+                csv_paths=csv_paths,
+                asset_paths_path=asset_paths_path,
+                overwrite=overwrite,
+                sort_column=sort_column,
+                debug=debug)
     else:
         print("Loaded assets from {}".format(asset_paths_path))
-    
+    print(asset_paths.keys())
     # Iterate through each group's assets and create an HTML page
     for group_idx, group_id in enumerate(sorted(asset_paths.keys())):
         if debug and group_idx > 0:
             break
         group_assets = asset_paths[group_id]
+        all_images_path = None
+        if 'all_images' in group_assets:
+            all_images_path = group_assets['all_images']
+            group_assets.pop('all_images')
         html_string = build_html(
             group_id=group_id,
             group_assets=group_assets,
+            all_images_path=all_images_path,
             html_dir=html_dir,
             title=title,
             debug=debug)
@@ -328,5 +457,5 @@ if __name__ == "__main__":
         html_dir=args.html_dir,
         filenames=args.filenames,
         overwrite=args.overwrite,
-        sort_column=['entropy', 'unnormalized_top_2_confusion'],
+        sort_column=['human_entropy', 'human_t2c'],
         debug=args.debug)
