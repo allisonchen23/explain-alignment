@@ -45,6 +45,8 @@ def make_grid(flattened, items_per_row):
             grid.append(flattened[i: i + items_per_row])
         else:
             padded_row = flattened[i:]
+            if type(padded_row) != list:
+                padded_row = list(padded_row)
             while len(padded_row) < items_per_row:
                 padded_row.append(None)
             grid.append(padded_row)
@@ -187,15 +189,15 @@ def bar_graph(data,
 
     Arg(s):
         data : N x C np.array
-            N : number of data points
+            N : number of bar groups (that would display on a legend)
             C : number of bar classes
         errors : N x C np.array of errors for each bar
             N : number of data points
             C : number of bar classes
         labels : list[str]
-            C length list of labels for each bar
+            C length list of labels for each bar along x-axis
         groups : list[str]
-            N list of group names
+            N list of group names in legend
         title : str
             title for bar graph
         xlabel : str

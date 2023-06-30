@@ -59,7 +59,7 @@ class KDDataset(Dataset):
 
 class CIFAR10TorchDataset(Dataset):
     def __init__(self,
-                 cifar_dir,
+                 dataset_dir,
                  split,
                  to_tensor=True,
                  normalize=True,
@@ -75,7 +75,7 @@ class CIFAR10TorchDataset(Dataset):
             files = ['test_batch']
             
         for file in files:
-            path = os.path.join(cifar_dir, file)
+            path = os.path.join(dataset_dir, file)
             data = pickle.load(open(path, 'rb'))
             cur_images = data['data']
             cur_images = np.reshape(cur_images, (-1, 3, 32, 32))
@@ -88,6 +88,7 @@ class CIFAR10TorchDataset(Dataset):
         self.images = np.transpose(self.images, (0, 2, 3, 1))
         self.labels = np.concatenate(labels, axis=0)
         self.n_samples = len(self.labels)
+        self.dataset_dir = dataset_dir
                 
         # Create transformations
         self.transforms = [transforms.ToTensor()]  # changes dims H x W x C -> C x H x W and scales to [0, 1]
