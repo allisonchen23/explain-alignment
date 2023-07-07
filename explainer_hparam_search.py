@@ -12,7 +12,7 @@ from sklearn.cluster import KMeans
 from datetime import datetime
 
 sys.path.insert(0, 'src')
-from utils.utils import ensure_dir, read_json, informal_log
+from utils.utils import ensure_dir, read_json, informal_log, copy_file
 from utils.visualizations import plot
 from utils.model_utils import prepare_device
 
@@ -47,7 +47,7 @@ def setup_dataloaders(config_json):
 
 def restore_and_test(model,
                     config,
-                    trial_path,
+                    trial_dir,
                     model_restore_path,
                     val_dataloader,
                     metric_fns,
@@ -55,9 +55,8 @@ def restore_and_test(model,
                     loss_fn):
 
     model_restore_path = os.path.join(config.save_dir, 'model_best.pth')
-    # trial_path = os.path.dirname(os.path.dirname(model_restore_path))
-    output_save_path = os.path.join(trial_path, "val_outputs.pth")
-    log_save_path = os.path.join(trial_path, "val_metrics.pth")
+    output_save_path = os.path.join(trial_dir, "val_outputs.pth")
+    log_save_path = os.path.join(trial_dir, "val_metrics.pth")
 
     model.restore_model(model_restore_path)
 
@@ -71,6 +70,38 @@ def restore_and_test(model,
         log_save_path=log_save_path)
 
     return validation_data
+
+def save_best_outputs_predictions(best_trial_dir,
+                                  save_best_model_dir):
+    # Copy config file
+    config_path = os.path.join(best_trial_dir, 'models', 'config.json')
+    copy_file(config_path, save_best_model_dir)
+
+    # Load test outputs
+    test_outputs_path = os.path.join(save_best_model_dir, 'outputs.pth')
+    test_outputs = torch.load(test_outputs_path)
+    # Calculate softmax probabilities & predictions
+    test_probabilities = torch.softmax(test_outputs, dim=1)
+    test_predictions = torch.argmax(test_outputs, dim=1)
+
+    # Move all to CPU and convert to numpy
+    test_outputs = test_outputs.cpu().numpy()
+    test_probabilities = test_probabilities.cpu().numpy()
+    test_predictions = test_predictions.cpu().numpy()
+
+    outputs_predictions = {
+        'test': {
+            'outputs': test_outputs,
+            'probabilities': test_probabilities,
+            'predictions': test_predictions
+        }
+    }
+
+    outputs_predictions_save_path = os.path.join(save_best_model_dir, 'outputs_predictions.pth')
+    torch.save(outputs_predictions, outputs_predictions_save_path)
+
+    return outputs_predictions_save_path
+
 
 def run_hparam_search(config_json,
                       learning_rates,
@@ -126,13 +157,13 @@ def run_hparam_search(config_json,
 
             # Set paths for restoring model and trial
             model_restore_path = os.path.join(config.save_dir, 'model_best.pth')
-            trial_path = os.path.dirname(config.save_dir)
+            trial_dir = os.path.dirname(config.save_dir)
             # Run on validation set using predict function
             informal_log("Running model on test set...", log_path, timestamp=print_timestamp)
             validation_data = restore_and_test(
                 model=model,
                 config=config,
-                trial_path=trial_path,
+                trial_dir=trial_dir,
                 model_restore_path=model_restore_path,
                 val_dataloader=test_dataloader,
                 metric_fns=metric_fns,
@@ -150,10 +181,10 @@ def run_hparam_search(config_json,
                     'val_acc': val_accuracy
                 })
                 informal_log("Best accuracy of {:.3f} with lr={} and wd={}".format(val_accuracy, lr, wd), log_path, timestamp=print_timestamp)
-                informal_log("Trial path: {}".format(trial_path), log_path, timestamp=print_timestamp)
+                informal_log("Trial path: {}".format(trial_dir), log_path, timestamp=print_timestamp)
 
                 # Copy model and outputs to 1 directory for easy access
-                best_save_dir = os.path.join(os.path.dirname(os.path.dirname(trial_path)), 'best')
+                best_save_dir = os.path.join(os.path.dirname(os.path.dirname(trial_dir)), 'best')
                 ensure_dir(best_save_dir)
                 best_outputs_save_path = os.path.join(best_save_dir, 'outputs.pth')
                 best_model_save_path = os.path.join(best_save_dir, 'model.pth')
@@ -164,10 +195,20 @@ def run_hparam_search(config_json,
                 with open(best_hparam_save_path, "w") as f:
                     json.dump(best, f)
                 informal_log("Saved model and outputs to {}".format(best_save_dir), log_path, timestamp=print_timestamp)
+                # Save path to best trial_dir
+                best_trial_dir = trial_dir
 
             informal_log("", log_path)
 
             trial_idx += 1
+
+    # TODO: Verify that the best model gets the accuracy reported on the validation set (opt)
+    # Obtain outputs and predictions on training and validation data
+    outputs_predictions_save_path = save_best_outputs_predictions(
+        best_trial_dir=best_trial_dir,
+        save_best_model_dir=best_save_dir)
+    informal_log("Saved outputs & predictions to {}".format(outputs_predictions_save_path), log_path, timestamp=print_timestamp)
+
 
 def build_save_dir(config_json):
     '''
