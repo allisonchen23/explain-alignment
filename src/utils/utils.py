@@ -7,6 +7,7 @@ from collections import OrderedDict
 import numpy as np
 from PIL import Image
 import pickle
+from datetime import datetime
 
 def read_lists(filepath):
     '''
@@ -168,7 +169,7 @@ def ensure_dir(dirname):
     dirname = Path(dirname)
     if not dirname.is_dir():
         dirname.mkdir(parents=True, exist_ok=False)
-        
+
 
 def get_common_dir_path(paths):
     '''
@@ -265,7 +266,7 @@ def print_dict(dictionary, indent_level=0):
             print("{}{} : {}".format(tabs, key, val))
 
 
-def informal_log(s, filepath=None, to_console=True):
+def informal_log(s, filepath=None, to_console=True, timestamp=False):
     '''
     Logs a string to either file or console
     Arg(s):
@@ -276,7 +277,8 @@ def informal_log(s, filepath=None, to_console=True):
         to_console : bool
             log to console
     '''
-
+    if timestamp:
+        s = '[{}] {}'.format(datetime.now().strftime(r'%m%d_%H%M%S'), s)
     if to_console:
         print(s)
 

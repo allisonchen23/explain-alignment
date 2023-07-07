@@ -38,12 +38,14 @@ class LinearLayers(BaseModel):
         else:
             raise ValueError("Activation '{}' not supported.".format(activation))
         layers = []
-        for n_in, n_out in zip(in_features, out_features):
+        n_layers = len(in_features)
+        for layer_idx, (n_in, n_out) in enumerate(zip(in_features, out_features)):
             layers.append(torch.nn.Linear(
                 n_in,
                 n_out,
                 bias=bias))
-            if self.activation_fn is not None:
+            # Add activation function for all but last layer
+            if self.activation_fn is not None and layer_idx < n_layers-1:
                 layers.append(self.activation_fn)
 
         self.layers = torch.nn.Sequential(*layers)
