@@ -5,9 +5,9 @@
     "arch": {
         "type": "LinearLayers",
         "args": {
-            "n_in_features": 500,
+            "n_in_features": 2000,
             "n_classes": 10,
-            "n_hidden_features": [256],
+            "n_hidden_features": [256, 256],
             "bias": true,
             "activation": "relu"
         }
@@ -15,7 +15,7 @@
     "dataset": {
         "type": "KDDataset",
         "args": {
-            "input_features_path": "data/explainer_inputs/cifar/SIFT/sigma_1.6/stride_2/K_500/cifar_SIFT_sigma_1.6_stride_2_K_500_explainer_inputs.pth",
+            "input_features_path": "data/explainer_inputs/cifar/SIFT/sigma_1.6/stride_2/K_2000/cifar_SIFT_sigma_1.6_stride_2_K_2000_explainer_inputs.pth",
             "labels_path": "saved/cifar10/resnet18/outputs_predictions.pth",
             "out_type": "probabilities"
         }
@@ -52,7 +52,7 @@
     },
     "trainer": {
         "epochs": 100,
-        "save_dir": "saved/debug/saved_explainers",
+        "save_dir": "saved/saved_explainers",
         "save_period": 1,
         "verbosity": 2,
         "monitor": "max val_accuracy",
