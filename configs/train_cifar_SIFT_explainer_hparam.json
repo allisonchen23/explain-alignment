@@ -1,0 +1,63 @@
+{
+    "name": "",
+    "n_gpu": 1,
+    "method": "train",
+    "arch": {
+        "type": "LinearLayers",
+        "args": {
+            "n_in_features": 500,
+            "n_classes": 10,
+            "n_hidden_features": [256],
+            "bias": true,
+            "activation": "relu"
+        }
+    },
+    "dataset": {
+        "type": "KDDataset",
+        "args": {
+            "input_features_path": "data/explainer_inputs/cifar/SIFT/sigma_1.6/stride_2/K_500/cifar_SIFT_sigma_1.6_stride_2_K_500_explainer_inputs.pth",
+            "labels_path": "saved/cifar10/resnet18/outputs_predictions.pth",
+            "out_type": "probabilities"
+        }
+    },
+    "data_loader": {
+        "args": {
+            "batch_size": 256,
+            "num_workers": 8
+        }
+    },
+    "optimizer": {
+        "type": "SGD",
+        "args": {
+            "lr": 0.01,
+            "weight_decay": 0
+        }
+    },
+    "loss": "cross_entropy",
+    "metrics": [
+        "accuracy",
+        "RMSE",
+        "per_class_accuracy",
+        "precision",
+        "recall",
+        "f1",
+        "predicted_class_distribution"
+    ],
+    "lr_scheduler": {
+        "type": "StepLR",
+        "args": {
+            "step_size": 101,
+            "gamma": 0.5
+        }
+    },
+    "trainer": {
+        "epochs": 100,
+        "save_dir": "saved/debug/saved_explainers",
+        "save_period": 1,
+        "verbosity": 2,
+        "monitor": "max val_accuracy",
+        "early_stop": 20,
+        "save_val_results": true,
+        "tensorboard": true
+    }
+}
