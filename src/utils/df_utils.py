@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import os, sys
 
+sys.path.insert(0, 'src')
+from utils.utils import ensure_dir
 def string_to_numpy(string, verbose=False):
     '''
     Given a string, convert it to a numpy array
@@ -77,3 +79,15 @@ def convert_string_columns(df, columns=None):
     for column in columns:
         df[column] = df[column].map(string_to_numpy)
     return df
+
+def save_csv(df, save_path, overwrite=False):
+    ensure_dir(os.path.dirname(save_path))
+    if overwrite:
+        df.to_csv(save_path)
+        print("Saved migration_df to {}".format(save_path))
+    else:
+        if os.path.exists(save_path):
+            print("File exists at {}".format(save_path))
+        else:
+            df.to_csv(save_path)
+            print("Saved df to {}".format(save_path))
