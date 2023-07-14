@@ -72,14 +72,62 @@ def restore_and_test(model,
     return validation_data
 
 def save_best_outputs_predictions(best_trial_dir,
-                                  save_best_model_dir):
+                                  save_best_model_dir,
+                                  log_path,
+                                  print_timestamp=True,
+                                  model=None,
+                                  val_dataloader=None,
+                                  metric_fns=None,
+                                  loss_fn=None,
+                                  device=None):
+    # Set flag for inconsistent results
+    inconsistent_results = False
     # Copy config file
     config_path = os.path.join(best_trial_dir, 'models', 'config.json')
     copy_file(config_path, save_best_model_dir)
 
+    # Validate that model run on the val_dataloader will give the same outputs as in test_outputs
+
     # Load test outputs
     test_outputs_path = os.path.join(save_best_model_dir, 'outputs.pth')
     test_outputs = torch.load(test_outputs_path)
+
+    if model is not None and val_dataloader is not None:
+        informal_log("Verifying saved model's performance is consistent...", log_path, timestamp=print_timestamp)
+        # Check other variables needed are passed
+        assert metric_fns is not None, "Cannot validate model with no metric functions"
+        assert loss_fn is not None, "Cannot validate model with no loss function"
+        assert device is not None, "Cannot validate model with no device"
+        model_restore_path = os.path.join(save_best_model_dir, 'model.pth')
+        model.restore_model(model_restore_path)
+
+        validation_data = predict(
+            data_loader=val_dataloader,
+            model=model,
+            metric_fns=metric_fns,
+            device=device,
+            loss_fn=loss_fn)
+
+        val_metrics = validation_data['metrics']
+        val_outputs = validation_data['logits']
+
+        # Compare accuracy
+        # Load hparams with validation accuracy in it
+        hparams_path = os.path.join(save_best_model_dir, 'hparams.json')
+        hparams = read_json(hparams_path)
+        accuracy = hparams['val_acc']
+
+        if accuracy == val_metrics['accuracy'] and (test_outputs == val_outputs).all():
+            informal_log("Model is consistent with saved outputs", log_path, timestamp=print_timestamp)
+        if accuracy != val_metrics['accuracy']:
+            informal_log("WARNING! Saved model inconsistent. Final validation on best model could not reproduce accuracy.", log_path, timestamp=print_timestamp)
+            informal_log("Loaded {:.3f} from 'hparams.json' and obtained {:.3f} when running".format(
+                accuracy * 100, val_metrics['accuracy'] * 100), log_path, timestamp=print_timestamp)
+            inconsistent_results = True
+        if not (test_outputs == val_outputs).all():
+            informal_log("WARNING! Saved model inconsistent. Final validation on best model could not reproduce same predictions.", log_path, timestamp=print_timestamp)
+            inconsistent_results = True
+
     # Calculate softmax probabilities & predictions
     test_probabilities = torch.softmax(test_outputs, dim=1)
     test_predictions = torch.argmax(test_outputs, dim=1)
@@ -96,8 +144,10 @@ def save_best_outputs_predictions(best_trial_dir,
             'predictions': test_predictions
         }
     }
-
-    outputs_predictions_save_path = os.path.join(save_best_model_dir, 'outputs_predictions.pth')
+    if inconsistent_results:
+        outputs_predictions_save_path = os.path.join(save_best_model_dir, 'INCONSISTENT_outputs_predictions.pth')
+    else:
+        outputs_predictions_save_path = os.path.join(save_best_model_dir, 'outputs_predictions.pth')
     torch.save(outputs_predictions, outputs_predictions_save_path)
 
     return outputs_predictions_save_path
@@ -202,23 +252,33 @@ def run_hparam_search(config_json,
 
             trial_idx += 1
 
-    # TODO: Verify that the best model gets the accuracy reported on the validation set (opt)
-    # Obtain outputs and predictions on training and validation data
+    # Obtain outputs and predictions on validation data
     outputs_predictions_save_path = save_best_outputs_predictions(
         best_trial_dir=best_trial_dir,
-        save_best_model_dir=best_save_dir)
+        save_best_model_dir=best_save_dir,
+        log_path=log_path,
+        print_timestamp=print_timestamp,
+        model=model,
+        val_dataloader=test_dataloader,
+        metric_fns=metric_fns,
+        loss_fn=loss_fn,
+        device=device)
     informal_log("Saved outputs & predictions to {}".format(outputs_predictions_save_path), log_path, timestamp=print_timestamp)
 
 
-def build_save_dir(config_json):
+def build_save_dir(config_json, path_prefix='data/explainer_inputs'):
     '''
     Following format from generating the explainer inputs, the new path should be:
         root / dataset_type / input_type / <more params> / explainer hidden layers
     '''
     save_root = config_json['trainer']['save_dir']
     input_dataset_path = config_json['dataset']['args']['input_features_path']
-    input_dataset_name = os.path.basename(input_dataset_path).split("explainer_inputs.pth")[0]
-    save_local_dir = input_dataset_name.replace('_', '/')
+    # Obtain relative path from the path prefix (typically 'data/explainer_inputs')
+    relative_path = os.path.relpath(path=input_dataset_path, start=path_prefix)
+    # Remove filename from path
+    save_local_dir = os.path.dirname(relative_path)
+    # input_dataset_name = os.path.basename(input_dataset_path).split("explainer_inputs.pth")[0]
+    # save_local_dir = input_dataset_name.replace('_', '/')
 
     # Obtain number of hidden features
     hidden_layers = config_json['arch']['args']['n_hidden_features']

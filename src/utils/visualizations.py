@@ -174,6 +174,9 @@ def show_image_rows(images,
     return fig, axs
 
 def bar_graph(data,
+              fig=None,
+              ax=None,
+              display_values=False,
               errors=None,
               labels=None,
               groups=None,
@@ -191,6 +194,12 @@ def bar_graph(data,
         data : N x C np.array
             N : number of bar groups (that would display on a legend)
             C : number of bar classes
+        fig : plt.figure
+            Optional figure to pass in
+        ax : plt axis
+            Optional axis to pass in
+        display_values : bool
+            Boolean to display values of each bar or not
         errors : N x C np.array of errors for each bar
             N : number of data points
             C : number of bar classes
@@ -211,7 +220,14 @@ def bar_graph(data,
         save_path : str
             if not None, the path to save bar graph to
     '''
-    fig, ax = plt.subplots()
+    if fig is None and ax is None:
+        plt.clf()
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+    else:
+        assert fig is not None and ax is not None, "fig and ax must both or neither be None"
+
+
     if type(data) == list and type(data[0]) == list:
         data = np.array(data)
     elif type(data) == list:
@@ -300,8 +316,23 @@ def bar_graph(data,
         ax.set_ylabel(ylabel)
     if title is not None:
         ax.set_title(title)
-    ax.legend()
-    
+    if groups is not None:
+        ax.legend()
+
+    # Display values above each bar
+    if display_values:
+        for rect in ax.patches:
+            y = rect.get_height()
+            x = rect.get_x() + rect.get_width() / 2
+            value = '{:.3f}'.format(y)
+            ax.annotate(
+                value,
+                xy=(x, y),
+                xytext=(0, 5),
+                textcoords="offset points",
+                ha="center",
+                fontsize=14
+            )
     if fig_size is not None:
         fig.set_figheight(fig_size[1])
         fig.set_figheight(fig_size[0])
@@ -316,8 +347,8 @@ def bar_graph(data,
     # Show figure
     if show:
         plt.show()
-    plt.close()
-    return ax
+    # plt.close()
+    return fig, ax
 
 def histogram(data,
               multi_method='side',
@@ -423,7 +454,7 @@ def histogram(data,
         plt.xlabel(xlabel)
     if ylabel is not None:
         plt.ylabel(ylabel)
-    
+
     if xlim is not None:
         plt.xlim(xlim)
     if ylim is not None:
@@ -506,7 +537,7 @@ def plot(xs,
     Returns:
         fig, ax
             figure and axes of plot
-    '''    
+    '''
     if fig is None and ax is None:
         plt.clf()
         if fig_size is not None:
@@ -514,10 +545,10 @@ def plot(xs,
         else:
             fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
-        
+
     else:
         assert fig is not None and ax is not None, "fig and ax must both or neither be None"
-    
+
     n_lines = len(xs)
     if labels is None:
         labels = [None for i in range(n_lines)]
@@ -782,7 +813,7 @@ def pie_chart(sizes,
         fig, ax = plt.subplots()
     if relative:
         autopct = '%1.2f%%'
-        
+
     # Check lengths of data passed in
     assert len(sizes) == len(labels), "Received {} length array for sizes and {} length array for labels".format(
         len(sizes), len(labels))
@@ -797,11 +828,11 @@ def pie_chart(sizes,
         labeldistance=label_distance,
         autopct=autopct,
         colors=colors)
-    
+
     if save_path is not None:
         plt.savefig(save_path)
-    
+
     if show:
         plt.show()
-        
+
     return fig, ax
