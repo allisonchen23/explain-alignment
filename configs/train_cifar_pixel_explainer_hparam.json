@@ -5,9 +5,9 @@
     "arch": {
         "type": "LinearLayers",
         "args": {
-            "n_in_features": 1024,
+            "n_in_features": 3072,
             "n_classes": 10,
-            "n_hidden_features": [],
+            "n_hidden_features": [1024],
             "bias": true,
             "activation": "relu"
         }
@@ -15,7 +15,7 @@
     "dataset": {
         "type": "KDDataset",
         "args": {
-            "input_features_path": "data/explainer_inputs/cifar/pixel/intensity/cifar_pixel_intensity_explainer_inputs.pth",
+            "input_features_path": "data/explainer_inputs/cifar/pixel/RGB/cifar_pixel_RGB_explainer_inputs.pth",
             "labels_path": "saved/cifar10/resnet18/outputs_predictions.pth",
             "out_type": "probabilities"
         }
