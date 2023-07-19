@@ -11,31 +11,52 @@ import model.loss as module_loss
 import model.metric as module_metric
 import model.model as module_arch
 from trainer.trainer import Trainer
-from utils.utils import read_lists
+from utils.utils import read_lists, read_json
 from utils.model_utils import prepare_device
 
 from parse_config import ConfigParser
 from predict import predict
 
 
-def main(config, train_data_loader=None, val_data_loader=None, seed=0):
-    
-    wandb.init(
-        project=config.config['name'],
-        name=config.run_id,
-        config={
-            'arch': config.config['arch']['type'],
-            'lr': config.config['optimizer']['args']['lr'],
-            'wd': config.config['optimizer']['args']['weight_decay'],
-            'optimizer': config.config['optimizer']['type'],
-            'save_dir': os.path.dirname(config.save_dir)
-            
-        }
+def main(config_json, train_data_loader=None, val_data_loader=None, seed=0):
+    # Code to set up config file if part of wandb sweep
+    # try:
+    wandb.init()
+    wandb_config = wandb.config
+    if 'lr' in wandb_config:
+        config_json['optimizer']['args']['lr'] = wandb_config.lr
+    if 'wd' in wandb_config:
+        config_json['optimizer']['args']['weight_decay'] = wandb_config.wd
+    run_id = build_run_id(config_json)
+    run_id = os.path.join(
+        run_id,
+        'trials',
+        'lr_{}-wd_{}'.format(wandb_config.lr, wandb_config.wd)
     )
-    torch.manual_seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    np.random.seed(seed)
+    config = ConfigParser(config_json, run_id=run_id)
+    print(config.save_dir)
+    print
+    # except:
+    #     print("no config")
+    #     config = ConfigParser(config_json)
+    #     wandb.init(
+    #         project=config.config['name'],
+    #         name=config.run_id,
+    #         config={
+    #             'arch': config.config['arch']['type'],
+    #             'lr': config.config['optimizer']['args']['lr'],
+    #             'wd': config.config['optimizer']['args']['weight_decay'],
+    #             'optimizer': config.config['optimizer']['type'],
+    #             'save_dir': os.path.dirname(config.save_dir)
+                
+    #         }
+    #     )
+
+    if seed is not None:
+        torch.manual_seed(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        np.random.seed(seed)
     logger = config.get_logger('train')
 
     # setup data_loader instances
@@ -144,23 +165,81 @@ def main(config, train_data_loader=None, val_data_loader=None, seed=0):
     
     return model
 
+def build_save_dir(config_json, path_prefix='data/explainer_inputs'):
+    '''
+    Following format from generating the explainer inputs, the new path should be:
+        root / dataset_type / input_type / <more params> / explainer hidden layers
+    '''
+    save_root = config_json['trainer']['save_dir']
+    input_dataset_path = config_json['dataset']['args']['input_features_path']
+    # Obtain relative path from the path prefix (typically 'data/explainer_inputs')
+    relative_path = os.path.relpath(path=input_dataset_path, start=path_prefix)
+    # Remove filename from path
+    save_local_dir = os.path.dirname(relative_path)
+    # input_dataset_name = os.path.basename(input_dataset_path).split("explainer_inputs.pth")[0]
+    # save_local_dir = input_dataset_name.replace('_', '/')
+
+    # Obtain number of hidden features
+    hidden_layers = config_json['arch']['args']['n_hidden_features']
+    if len(hidden_layers) == 0:
+        hidden_string = 'hidden_NA'
+    else:
+        hidden_string = 'hidden'
+        for h in hidden_layers:
+            hidden_string += '_{}'.format(h)
+
+    save_dir = os.path.join(save_root, save_local_dir, hidden_string)
+    return save_dir
+
+def build_run_id(config_json, path_prefix='data/explainer_inputs'):
+    '''
+    Following format from generating the explainer inputs, the new path should be:
+        root / dataset_type / input_type / <more params> / explainer hidden layers
+    '''
+    # save_root = config_json['trainer']['save_dir']
+    input_dataset_path = config_json['dataset']['args']['input_features_path']
+    # Obtain relative path from the path prefix (typically 'data/explainer_inputs')
+    relative_path = os.path.relpath(path=input_dataset_path, start=path_prefix)
+    # Remove filename from path
+    save_local_dir = os.path.dirname(relative_path)
+    # input_dataset_name = os.path.basename(input_dataset_path).split("explainer_inputs.pth")[0]
+    # save_local_dir = input_dataset_name.replace('_', '/')
+
+    # Obtain number of hidden features
+    hidden_layers = config_json['arch']['args']['n_hidden_features']
+    if len(hidden_layers) == 0:
+        run_id = 'hidden_NA'
+    else:
+        run_id = 'hidden'
+        for h in hidden_layers:
+            run_id += '_{}'.format(h)
+
+    run_id = os.path.join(save_local_dir, run_id)
+    return run_id
 
 if __name__ == '__main__':
-    args = argparse.ArgumentParser(description='PyTorch Template')
-    args.add_argument('-c', '--config', default=None, type=str,
+    parser = argparse.ArgumentParser(description='PyTorch Template')
+    parser.add_argument('-c', '--config', default=None, type=str,
                       help='config file path (default: None)')
-    args.add_argument('-r', '--resume', default=None, type=str,
+    parser.add_argument('-r', '--resume', default=None, type=str,
                       help='path to latest checkpoint (default: None)')
-    args.add_argument('-d', '--device', default=None, type=str,
+    parser.add_argument('-d', '--device', default=None, type=str,
                       help='indices of GPUs to enable (default: all)')
+    # parser.add_argument('--build_save_dir', default=False, action='store_true')
 
     # custom cli options to modify configuration from default values given in json file.
     CustomArgs = collections.namedtuple('CustomArgs', 'flags type target')
     options = [
         CustomArgs(['--lr', '--learning_rate'], type=float, target='optimizer;args;lr'),
+        CustomArgs(['--wd', '--weight_decay'], type=float, target='optimizer;args;wd'),
         CustomArgs(['--bs', '--batch_size'], type=int, target='data_loader;args;batch_size'),
         CustomArgs(['--name'], type=str, target='name')
     ]
-    parsed_args = args.parse_args()
-    config = ConfigParser.from_args(args, options)
-    main(config)
+    args = parser.parse_args()
+    config_json = read_json(args.config)
+    # if args.build_save_dir:
+    #     config_json['trainer']['save_dir'] = build_save_dir(config_json)
+
+    # config = ConfigParser.from_args(args, options)
+    # config = ConfigParser(config_json)
+    main(config_json)
