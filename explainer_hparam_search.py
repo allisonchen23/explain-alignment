@@ -12,7 +12,7 @@ from sklearn.cluster import KMeans
 from datetime import datetime
 
 sys.path.insert(0, 'src')
-from utils.utils import ensure_dir, read_json, informal_log, copy_file
+from utils.utils import ensure_dir, read_json, informal_log, copy_file, write_json
 from utils.visualizations import plot
 from utils.model_utils import prepare_device
 
@@ -31,9 +31,16 @@ from setup_cifar10 import setup_cifar10
 
 def setup_dataloaders(config_json):
     dataset_args = config_json['dataset']['args']
-    train_descriptors_dataset = module_data.KDDataset(split='train', **dataset_args)
-    test_descriptors_dataset = module_data.KDDataset(split='test', **dataset_args)
-
+    if 'cifar' in dataset_args['input_features_path']:
+        train_descriptors_dataset = module_data.KDDataset(split='train', **dataset_args)
+        test_descriptors_dataset = module_data.KDDataset(split='test', **dataset_args)
+    elif 'ade20k' in dataset_args['input_features_path']:
+        train_descriptors_dataset = module_data.KDDataset(split='train', **dataset_args)
+        test_descriptors_dataset = module_data.KDDataset(split='val', **dataset_args)
+    else:
+        raise ValueError("Expected 'cifar' or 'ade20k' in input_features_path. Received {}".format(
+            dataset_args['input_features_path']
+        ))
     dataloader_args = config_json['data_loader']['args']
     train_descriptors_dataloader = torch.utils.data.DataLoader(
         train_descriptors_dataset,
@@ -93,11 +100,17 @@ def save_best_outputs_predictions(best_trial_dir,
     test_outputs = torch.load(test_outputs_path)
 
     if model is not None and val_dataloader is not None:
+        config_json = read_json(config_path)
         informal_log("Verifying saved model's performance is consistent...", log_path, timestamp=print_timestamp)
-        # Check other variables needed are passed
-        assert metric_fns is not None, "Cannot validate model with no metric functions"
-        assert loss_fn is not None, "Cannot validate model with no loss function"
-        assert device is not None, "Cannot validate model with no device"
+
+        # Obtain metric_fns, device, and loss_fn if not provided
+        if metric_fns is None:
+            metric_fns = [getattr(module_metric, met) for met in config_json['metrics']]
+        if device is None:
+            device, _ = prepare_device(config_json['n_gpu'])
+        if loss_fn is None:
+            loss_fn = getattr(module_loss, config_json['loss'])
+
         model_restore_path = os.path.join(save_best_model_dir, 'model.pth')
         model.restore_model(model_restore_path)
 
@@ -115,18 +128,26 @@ def save_best_outputs_predictions(best_trial_dir,
         # Load hparams with validation accuracy in it
         hparams_path = os.path.join(save_best_model_dir, 'hparams.json')
         hparams = read_json(hparams_path)
-        accuracy = hparams['val_acc']
+        if 'val_acc' in hparams:
+            accuracy = hparams['val_acc']
 
-        if accuracy == val_metrics['accuracy'] and (test_outputs == val_outputs).all():
-            informal_log("Model is consistent with saved outputs", log_path, timestamp=print_timestamp)
-        if accuracy != val_metrics['accuracy']:
-            informal_log("WARNING! Saved model inconsistent. Final validation on best model could not reproduce accuracy.", log_path, timestamp=print_timestamp)
-            informal_log("Loaded {:.3f} from 'hparams.json' and obtained {:.3f} when running".format(
-                accuracy * 100, val_metrics['accuracy'] * 100), log_path, timestamp=print_timestamp)
-            inconsistent_results = True
-        if not (test_outputs == val_outputs).all():
-            informal_log("WARNING! Saved model inconsistent. Final validation on best model could not reproduce same predictions.", log_path, timestamp=print_timestamp)
-            inconsistent_results = True
+            if accuracy == val_metrics['accuracy'] and (test_outputs == val_outputs).all():
+                informal_log("Model is consistent with saved outputs", log_path, timestamp=print_timestamp)
+            if accuracy != val_metrics['accuracy']:
+                informal_log("WARNING! Saved model inconsistent. Final validation on best model could not reproduce accuracy.", log_path, timestamp=print_timestamp)
+                informal_log("Loaded {:.3f} from 'hparams.json' and obtained {:.3f} when running".format(
+                    accuracy * 100, val_metrics['accuracy'] * 100), log_path, timestamp=print_timestamp)
+                inconsistent_results = True
+            if not (test_outputs == val_outputs).all():
+                informal_log("WARNING! Saved model inconsistent. Final validation on best model could not reproduce same predictions.", log_path, timestamp=print_timestamp)
+                inconsistent_results = True
+        else:
+            hparams['val_acc'] = val_metrics['accuracy']
+        # Add n_params to hparams if it's not already there
+        if 'n_params' not in hparams:
+            hparams['n_params'] = int(model.get_n_params())
+        print(hparams, type(hparams))
+        write_json(hparams, hparams_path)
 
     # Calculate softmax probabilities & predictions
     test_probabilities = torch.softmax(test_outputs, dim=1)
@@ -158,6 +179,10 @@ def run_hparam_search(config_json,
                       weight_decays,
                       debug=False,
                       print_timestamp=True):
+    if debug:
+        config_json['trainer']['epochs'] = 1
+        config_json['trainer']['save_dir'] = config_json['trainer']['save_dir'].replace('saved/', 'saved/debug/')
+
     timestamp = datetime.now().strftime(r'%m%d_%H%M%S')
     log_path = os.path.join(config_json['trainer']['save_dir'], timestamp, 'log.txt')
     informal_log("Hyperparameter search", log_path, timestamp=print_timestamp)
@@ -181,8 +206,6 @@ def run_hparam_search(config_json,
     n_trials = len(learning_rates) * len(weight_decays)
     trial_idx = 1
 
-    if debug:
-        config_json['trainer']['epochs'] = 1
 
     for lr in learning_rates:
         for wd in weight_decays:
@@ -226,6 +249,7 @@ def run_hparam_search(config_json,
             # If best accuracy is achieved, print and save
             if val_accuracy > best['val_acc']:
                 best.update({
+                    'n_params': int(model.get_n_params()),
                     'lr': lr,
                     'wd': wd,
                     'val_acc': val_accuracy

@@ -182,8 +182,9 @@ def bar_graph(data,
               groups=None,
               title=None,
               xlabel=None,
-              ylabel=None,
               xlabel_rotation=0,
+              ylabel=None,
+              ylim=None,
               fig_size=None,
               save_path=None,
               show=True):
@@ -239,7 +240,7 @@ def bar_graph(data,
         errors = np.zeros_like(data)
     # Parameters for bar graphs
     x_pos = np.arange(n_classes)
-    width = 1 / n_groups
+    width = 0.8 / n_groups
     if labels is None:
         labels = ["" for i in range(n_classes)]
     if groups is None:
@@ -319,19 +320,27 @@ def bar_graph(data,
     if groups is not None:
         ax.legend()
 
+    # Set ylimits
+    if ylim is not None and len(ylim) == 2:
+        ax.set_ylim(ylim)
+
     # Display values above each bar
     if display_values:
         for rect in ax.patches:
             y = rect.get_height()
             x = rect.get_x() + rect.get_width() / 2
-            value = '{:.3f}'.format(y)
+
+            if type(y) == float or isinstance(y, np.floating):
+                value = '{:.2f}'.format(y)
+            else:
+                value = str(y)
             ax.annotate(
                 value,
                 xy=(x, y),
                 xytext=(0, 5),
                 textcoords="offset points",
                 ha="center",
-                fontsize=14
+                fontsize=12
             )
     if fig_size is not None:
         fig.set_figheight(fig_size[1])
