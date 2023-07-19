@@ -3,6 +3,7 @@ import collections
 import torch
 import numpy as np
 import os, sys
+import wandb
 sys.path.insert(0, 'src')
 # import data_loader.data_loaders as module_data
 import datasets.datasets as module_data
@@ -18,6 +19,19 @@ from predict import predict
 
 
 def main(config, train_data_loader=None, val_data_loader=None, seed=0):
+    
+    wandb.init(
+        project=config.config['name'],
+        name=config.run_id,
+        config={
+            'arch': config.config['arch']['type'],
+            'lr': config.config['optimizer']['args']['lr'],
+            'wd': config.config['optimizer']['args']['weight_decay'],
+            'optimizer': config.config['optimizer']['type'],
+            'save_dir': os.path.dirname(config.save_dir)
+            
+        }
+    )
     torch.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False

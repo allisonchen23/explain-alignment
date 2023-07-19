@@ -1,10 +1,12 @@
 import numpy as np
 import sys
 import torch
+# import wandb
 
 sys.path.insert(0, 'src')
 from trainer.base_trainer import BaseTrainer
 from utils.utils import inf_loop, MetricTracker
+from utils import wandb_utils
 
 from model import metric as module_metric
 
@@ -65,6 +67,11 @@ class Trainer(BaseTrainer):
 
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update('loss', loss.item())
+            wandb_utils.log(
+                epoch=epoch,
+                log={'loss': loss.item()},
+                split='train'
+            )
             # for met in self.metric_ftns:
             #     self.train_metrics.update(met.__name__, met(prediction, target))
 
@@ -79,8 +86,8 @@ class Trainer(BaseTrainer):
                 break
         # log = self.train_metrics.result()
 
-        train_predictions = np.concatenate(train_predictions, axis=0)
-        train_targets = np.concatenate(train_targets, axis=0)
+        # train_predictions = np.concatenate(train_predictions, axis=0)
+        # train_targets = np.concatenate(train_targets, axis=0)
         # log = module_metric.compute_metrics(
         #     metric_fns=self.metric_ftns,
         #     prediction=train_predictions,
@@ -137,6 +144,12 @@ class Trainer(BaseTrainer):
         )
         val_log.update({'loss': loss.item()})
 
+        wandb_utils.log(
+            epoch=epoch,
+            log=val_log, 
+            split='val')
+
+
         # Add metrics and loss to tensorboard
         self.writer.set_step((epoch - 1) * len(self.data_loader), 'valid')
         for key, val in val_log.items():
@@ -162,3 +175,4 @@ class Trainer(BaseTrainer):
             current = batch_idx
             total = self.len_epoch
         return base.format(current, total, 100.0 * current / total)
+
