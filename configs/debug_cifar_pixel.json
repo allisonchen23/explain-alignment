@@ -1,13 +1,13 @@
 {
-    "name": "",
+    "name": "debug_run",
     "n_gpu": 1,
     "method": "train",
     "arch": {
         "type": "LinearLayers",
         "args": {
-            "n_in_features": 2000,
+            "n_in_features": 3072,
             "n_classes": 10,
-            "n_hidden_features": [256, 256],
+            "n_hidden_features": [],
             "bias": true,
             "activation": "relu"
         }
@@ -15,7 +15,7 @@
     "dataset": {
         "type": "KDDataset",
         "args": {
-            "input_features_path": "data/explainer_inputs/cifar/SIFT/sigma_1.6/stride_2/K_2000/cifar_SIFT_sigma_1.6_stride_2_K_2000_explainer_inputs.pth",
+            "input_features_path": "data/explainer_inputs/cifar/pixel/RGB/cifar_pixel_RGB_explainer_inputs.pth",
             "labels_path": "saved/cifar10/resnet18/outputs_predictions.pth",
             "out_type": "probabilities"
         }
@@ -29,8 +29,8 @@
     "optimizer": {
         "type": "SGD",
         "args": {
-            "lr": 0.01,
-            "weight_decay": 0
+            "lr": 0.001,
+            "weight_decay": 0.1
         }
     },
     "loss": "cross_entropy",
@@ -51,8 +51,8 @@
         }
     },
     "trainer": {
-        "epochs": 100,
-        "save_dir": "saved/saved_explainers",
+        "epochs": 5,
+        "save_dir": "saved/debug/",
         "save_period": 1,
         "verbosity": 2,
         "monitor": "max val_accuracy",

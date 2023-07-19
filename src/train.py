@@ -3,6 +3,8 @@ import collections
 import torch
 import numpy as np
 import os, sys
+import wandb
+
 sys.path.insert(0, 'src')
 # import data_loader.data_loaders as module_data
 import datasets.datasets as module_data
@@ -10,19 +12,36 @@ import model.loss as module_loss
 import model.metric as module_metric
 import model.model as module_arch
 from trainer.trainer import Trainer
-from utils.utils import read_lists
+from utils.utils import read_lists, read_json
 from utils.model_utils import prepare_device
 
 from parse_config import ConfigParser
-from predict import predict
+from predict import predict, restore_and_test
 
 
 def main(config, train_data_loader=None, val_data_loader=None, seed=0):
-    torch.manual_seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    np.random.seed(seed)
     logger = config.get_logger('train')
+    if seed is not None:
+        torch.manual_seed(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        np.random.seed(seed)
+        logger.info("Set seed to {}".format(seed))
+    else:
+        logger.info("No seed set")
+        
+    wandb.init(
+            project=config.config['name'],
+            name=config.run_id,
+            config={
+                'arch': config.config['arch']['type'],
+                'lr': config.config['optimizer']['args']['lr'],
+                'wd': config.config['optimizer']['args']['weight_decay'],
+                'optimizer': config.config['optimizer']['type'],
+                'save_dir': os.path.dirname(config.save_dir),
+                'seed': seed
+            }
+        )
 
     # setup data_loader instances
     if train_data_loader is None and val_data_loader is not None:
@@ -116,29 +135,49 @@ def main(config, train_data_loader=None, val_data_loader=None, seed=0):
     
     if 'save_val_results' in config.config['trainer'] and \
     config.config['trainer']['save_val_results']:
-        val_metric_save_path = os.path.join(os.path.dirname(config.save_dir), 'val_metrics.pth')
-        val_outputs_save_path = os.path.join(os.path.dirname(config.save_dir), 'val_outputs.pth')
-        predict(
-            data_loader=val_data_loader,
+        # Restore and save predictions from the best output
+        model_restore_path = os.path.join(config.save_dir, 'model_best.pth')
+        trial_dir = os.path.dirname(config.save_dir)
+        validation_data = restore_and_test(
             model=model,
+            config=config,
+            trial_dir=trial_dir,
+            model_restore_path=model_restore_path,
+            val_dataloader=val_data_loader,
             metric_fns=metrics,
             device=device,
-            loss_fn=criterion,
-            output_save_path=val_outputs_save_path,
-            log_save_path=val_metric_save_path)
-        print("Saving validation results to {}".format(os.path.dirname(val_metric_save_path)))
+            loss_fn=criterion
+        )
+        logger.info("Best model accuracy on validation set: {:.4f}".format(
+            validation_data['metrics']['accuracy']
+        ))
+        # val_metric_save_path = os.path.join(os.path.dirname(config.save_dir), 'val_metrics.pth')
+        # val_outputs_save_path = os.path.join(os.path.dirname(config.save_dir), 'outputs_predictions.pth')
+        # predict(
+        #     data_loader=val_data_loader,
+        #     model=model,
+        #     metric_fns=metrics,
+        #     device=device,
+        #     loss_fn=criterion,
+        #     output_save_path=val_outputs_save_path,
+        #     log_save_path=val_metric_save_path)
+        # print("Saving validation results to {}".format(os.path.dirname(val_metric_save_path)))
     
     return model
 
 
 if __name__ == '__main__':
-    args = argparse.ArgumentParser(description='PyTorch Template')
-    args.add_argument('-c', '--config', default=None, type=str,
+    parser = argparse.ArgumentParser(description='PyTorch Template')
+    parser.add_argument('-c', '--config', default=None, type=str,
                       help='config file path (default: None)')
-    args.add_argument('-r', '--resume', default=None, type=str,
+    parser.add_argument('-r', '--resume', default=None, type=str,
                       help='path to latest checkpoint (default: None)')
-    args.add_argument('-d', '--device', default=None, type=str,
+    parser.add_argument('-d', '--device', default=None, type=str,
                       help='indices of GPUs to enable (default: all)')
+    parser.add_argument('-s', '--seed', default=None, type=int,
+                      help='Set seed (if not None)')
+    parser.add_argument('--trial_id', default=None, type=str,
+                      help='ID of trial if replacing timestamp')
 
     # custom cli options to modify configuration from default values given in json file.
     CustomArgs = collections.namedtuple('CustomArgs', 'flags type target')
@@ -147,6 +186,9 @@ if __name__ == '__main__':
         CustomArgs(['--bs', '--batch_size'], type=int, target='data_loader;args;batch_size'),
         CustomArgs(['--name'], type=str, target='name')
     ]
-    parsed_args = args.parse_args()
-    config = ConfigParser.from_args(args, options)
-    main(config)
+    args = parser.parse_args()
+    config_json = read_json(args.config)
+    config = ConfigParser(config_json, run_id=args.trial_id)
+    # config = ConfigParser.from_args(parser, options)
+    main(config,
+         seed=args.seed)
