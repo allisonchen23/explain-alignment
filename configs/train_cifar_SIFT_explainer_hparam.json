@@ -51,8 +51,8 @@
         }
     },
     "trainer": {
-        "epochs": 100,
-        "save_dir": "saved/saved_explainers",
+        "epochs": 1,
+        "save_dir": "saved/debug/saved_explainers",
         "save_period": 1,
         "verbosity": 2,
         "monitor": "max val_accuracy",

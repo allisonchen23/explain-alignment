@@ -20,40 +20,37 @@ from predict import predict
 
 def main(config_json, timestamp=None, train_data_loader=None, val_data_loader=None, seed=0):
     # Code to set up config file if part of wandb sweep
-    # try:
-    wandb.init()
-    wandb_config = wandb.config
-    if 'lr' in wandb_config:
-        config_json['optimizer']['args']['lr'] = wandb_config.lr
-    if 'wd' in wandb_config:
-        config_json['optimizer']['args']['weight_decay'] = wandb_config.wd
-    run_id = build_run_id(config_json)
-    if timestamp is not None:
-        run_id = os.path.join(run_id, timestamp)
-    run_id = os.path.join(
-        run_id,
-        'trials',
-        'lr_{}-wd_{}'.format(wandb_config.lr, wandb_config.wd)
-    )
-    print(run_id)
-    config = ConfigParser(config_json, run_id=run_id)
-    print(config.save_dir)
-    print
-    # except:
-    #     print("no config")
-    #     config = ConfigParser(config_json)
-    #     wandb.init(
-    #         project=config.config['name'],
-    #         name=config.run_id,
-    #         config={
-    #             'arch': config.config['arch']['type'],
-    #             'lr': config.config['optimizer']['args']['lr'],
-    #             'wd': config.config['optimizer']['args']['weight_decay'],
-    #             'optimizer': config.config['optimizer']['type'],
-    #             'save_dir': os.path.dirname(config.save_dir)
+    try:
+        wandb.init()
+        wandb_config = wandb.config
+        if 'lr' in wandb_config:
+            config_json['optimizer']['args']['lr'] = wandb_config.lr
+        if 'wd' in wandb_config:
+            config_json['optimizer']['args']['weight_decay'] = wandb_config.wd
+        run_id = build_run_id(config_json)
+        if timestamp is not None:
+            run_id = os.path.join(run_id, timestamp)
+        run_id = os.path.join(
+            run_id,
+            'trials',
+            'lr_{}-wd_{}'.format(wandb_config.lr, wandb_config.wd)
+        )
+        config = ConfigParser(config_json, run_id=run_id)
+    except:
+        print("no config")
+        config = ConfigParser(config_json)
+        wandb.init(
+            project=config.config['name'],
+            name=config.run_id,
+            config={
+                'arch': config.config['arch']['type'],
+                'lr': config.config['optimizer']['args']['lr'],
+                'wd': config.config['optimizer']['args']['weight_decay'],
+                'optimizer': config.config['optimizer']['type'],
+                'save_dir': os.path.dirname(config.save_dir)
                 
-    #         }
-    #     )
+            }
+        )
 
     if seed is not None:
         torch.manual_seed(seed)
