@@ -1,5 +1,5 @@
 {
-    "name": "",
+    "name": "CIFAR_SIFT_explainer_hparam",
     "n_gpu": 1,
     "method": "train",
     "arch": {

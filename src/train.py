@@ -18,7 +18,7 @@ from parse_config import ConfigParser
 from predict import predict
 
 
-def main(config_json, train_data_loader=None, val_data_loader=None, seed=0):
+def main(config_json, timestamp=None, train_data_loader=None, val_data_loader=None, seed=0):
     # Code to set up config file if part of wandb sweep
     # try:
     wandb.init()
@@ -28,11 +28,14 @@ def main(config_json, train_data_loader=None, val_data_loader=None, seed=0):
     if 'wd' in wandb_config:
         config_json['optimizer']['args']['weight_decay'] = wandb_config.wd
     run_id = build_run_id(config_json)
+    if timestamp is not None:
+        run_id = os.path.join(run_id, timestamp)
     run_id = os.path.join(
         run_id,
         'trials',
         'lr_{}-wd_{}'.format(wandb_config.lr, wandb_config.wd)
     )
+    print(run_id)
     config = ConfigParser(config_json, run_id=run_id)
     print(config.save_dir)
     print
@@ -225,6 +228,8 @@ if __name__ == '__main__':
                       help='path to latest checkpoint (default: None)')
     parser.add_argument('-d', '--device', default=None, type=str,
                       help='indices of GPUs to enable (default: all)')
+    parser.add_argument('-t', '--timestamp', default=None, type=str,
+                      help='timestamp ID')
     # parser.add_argument('--build_save_dir', default=False, action='store_true')
 
     # custom cli options to modify configuration from default values given in json file.
@@ -242,4 +247,4 @@ if __name__ == '__main__':
 
     # config = ConfigParser.from_args(args, options)
     # config = ConfigParser(config_json)
-    main(config_json)
+    main(config_json, timestamp=args.timestamp)

@@ -186,26 +186,26 @@ def run_hparam_search(config_json,
         config_json['trainer']['epochs'] = 1
         config_json['trainer']['save_dir'] = config_json['trainer']['save_dir'].replace('saved/', 'saved/debug/')
 
-    timestamp = datetime.now().strftime(r'%m%d_%H%M%S')
-    log_path = os.path.join(config_json['trainer']['save_dir'], timestamp, 'log.txt')
-    informal_log("Hyperparameter search", log_path, timestamp=print_timestamp)
-    informal_log("Learning rates: {}".format(learning_rates), log_path, timestamp=print_timestamp)
-    informal_log("Weight decays: {}".format(weight_decays), log_path, timestamp=print_timestamp)
+    timestamp = str(datetime.now().strftime(r'%m%d_%H%M%S'))
+    # log_path = os.path.join(config_json['trainer']['save_dir'], timestamp, 'log.txt')
+    # informal_log("Hyperparameter search", log_path, timestamp=print_timestamp)
+    # informal_log("Learning rates: {}".format(learning_rates), log_path, timestamp=print_timestamp)
+    # informal_log("Weight decays: {}".format(weight_decays), log_path, timestamp=print_timestamp)
 
 
     # Setup data loaders, device, loss, and metrics
-    informal_log("Setting up train and test dataloaders...", log_path, timestamp=print_timestamp)
+    # informal_log("Setting up train and test dataloaders...", log_path, timestamp=print_timestamp)
     # train_dataloader, test_dataloader = setup_dataloaders(config_json=config_json)
-    device, device_ids = prepare_device(config_json['n_gpu'])
-    metric_fns = [getattr(module_metric, met) for met in config_json['metrics']]
-    loss_fn = getattr(module_loss, config_json['loss'])
+    # device, device_ids = prepare_device(config_json['n_gpu'])
+    # metric_fns = [getattr(module_metric, met) for met in config_json['metrics']]
+    # loss_fn = getattr(module_loss, config_json['loss'])
 
     # Variable relevant for hparam search
-    best = {
-        'lr': -1,
-        'wd': -1,
-        'val_acc': -1
-    }
+    # best = {
+    #     'lr': -1,
+    #     'wd': -1,
+    #     'val_acc': -1
+    # }
     n_trials = len(learning_rates) * len(weight_decays)
     trial_idx = 1
     sweep_config = {
@@ -225,6 +225,8 @@ def run_hparam_search(config_json,
             '${program}',
             '--config',
             config_path,
+            '--timestamp',
+            str(timestamp)
 
         ]
     }
@@ -321,31 +323,31 @@ def run_hparam_search(config_json,
     # informal_log("Saved outputs & predictions to {}".format(outputs_predictions_save_path), log_path, timestamp=print_timestamp)
 
 
-def build_save_dir(config_json, path_prefix='data/explainer_inputs'):
-    '''
-    Following format from generating the explainer inputs, the new path should be:
-        root / dataset_type / input_type / <more params> / explainer hidden layers
-    '''
-    save_root = config_json['trainer']['save_dir']
-    input_dataset_path = config_json['dataset']['args']['input_features_path']
-    # Obtain relative path from the path prefix (typically 'data/explainer_inputs')
-    relative_path = os.path.relpath(path=input_dataset_path, start=path_prefix)
-    # Remove filename from path
-    save_local_dir = os.path.dirname(relative_path)
-    # input_dataset_name = os.path.basename(input_dataset_path).split("explainer_inputs.pth")[0]
-    # save_local_dir = input_dataset_name.replace('_', '/')
+# def build_save_dir(config_json, path_prefix='data/explainer_inputs'):
+#     '''
+#     Following format from generating the explainer inputs, the new path should be:
+#         root / dataset_type / input_type / <more params> / explainer hidden layers
+#     '''
+#     save_root = config_json['trainer']['save_dir']
+#     input_dataset_path = config_json['dataset']['args']['input_features_path']
+#     # Obtain relative path from the path prefix (typically 'data/explainer_inputs')
+#     relative_path = os.path.relpath(path=input_dataset_path, start=path_prefix)
+#     # Remove filename from path
+#     save_local_dir = os.path.dirname(relative_path)
+#     # input_dataset_name = os.path.basename(input_dataset_path).split("explainer_inputs.pth")[0]
+#     # save_local_dir = input_dataset_name.replace('_', '/')
 
-    # Obtain number of hidden features
-    hidden_layers = config_json['arch']['args']['n_hidden_features']
-    if len(hidden_layers) == 0:
-        hidden_string = 'hidden_NA'
-    else:
-        hidden_string = 'hidden'
-        for h in hidden_layers:
-            hidden_string += '_{}'.format(h)
+#     # Obtain number of hidden features
+#     hidden_layers = config_json['arch']['args']['n_hidden_features']
+#     if len(hidden_layers) == 0:
+#         hidden_string = 'hidden_NA'
+#     else:
+#         hidden_string = 'hidden'
+#         for h in hidden_layers:
+#             hidden_string += '_{}'.format(h)
 
-    save_dir = os.path.join(save_root, save_local_dir, hidden_string)
-    return save_dir
+#     save_dir = os.path.join(save_root, save_local_dir, hidden_string)
+#     return save_dir
 
 
 if __name__ == "__main__":
@@ -366,8 +368,8 @@ if __name__ == "__main__":
 
     config_json = read_json(args.config)
 
-    if args.build_save_dir:
-        config_json['trainer']['save_dir'] = build_save_dir(config_json)
+    # if args.build_save_dir:
+    #     config_json['trainer']['save_dir'] = build_save_dir(config_json)
 
     run_hparam_search(
         config_json=config_json,
