@@ -6,6 +6,10 @@ checkpoints/
 *.pth
 external_code/
 html/
+slurm_logs/
+temp/
+wandb/
+scratch*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
