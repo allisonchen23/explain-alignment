@@ -15,6 +15,7 @@ sys.path.insert(0, 'src')
 from utils.utils import ensure_dir, read_json, informal_log, copy_file, write_json
 from utils.visualizations import plot
 from utils.model_utils import prepare_device
+from predict import restore_and_test
 
 import model.metric as module_metric
 import model.loss as module_loss
@@ -52,31 +53,31 @@ def setup_dataloaders(config_json):
         **dataloader_args)
     return train_descriptors_dataloader, test_descriptors_dataloader
 
-def restore_and_test(model,
-                    config,
-                    trial_dir,
-                    model_restore_path,
-                    val_dataloader,
-                    metric_fns,
-                    device,
-                    loss_fn):
+# def restore_and_test(model,
+#                     config,
+#                     trial_dir,
+#                     model_restore_path,
+#                     val_dataloader,
+#                     metric_fns,
+#                     device,
+#                     loss_fn):
 
-    model_restore_path = os.path.join(config.save_dir, 'model_best.pth')
-    output_save_path = os.path.join(trial_dir, "val_outputs.pth")
-    log_save_path = os.path.join(trial_dir, "val_metrics.pth")
+#     model_restore_path = os.path.join(config.save_dir, 'model_best.pth')
+#     output_save_path = os.path.join(trial_dir, "val_outputs.pth")
+#     log_save_path = os.path.join(trial_dir, "val_metrics.pth")
 
-    model.restore_model(model_restore_path)
+#     model.restore_model(model_restore_path)
 
-    validation_data = predict(
-        data_loader=val_dataloader,
-        model=model,
-        metric_fns=metric_fns,
-        device=device,
-        loss_fn=loss_fn,
-        output_save_path=output_save_path,
-        log_save_path=log_save_path)
+#     validation_data = predict(
+#         data_loader=val_dataloader,
+#         model=model,
+#         metric_fns=metric_fns,
+#         device=device,
+#         loss_fn=loss_fn,
+#         output_save_path=output_save_path,
+#         log_save_path=log_save_path)
 
-    return validation_data
+#     return validation_data
 
 def save_best_outputs_predictions(best_trial_dir,
                                   save_best_model_dir,

@@ -87,7 +87,11 @@ def predict(data_loader,
 
     if output_save_path is not None:
         ensure_dir(os.path.dirname(output_save_path))
-        torch.save(outputs, output_save_path)
+        outputs_predictions = save_outputs_predictions(
+            outputs=outputs,
+            save_path=output_save_path
+        )
+        # torch.save(outputs, output_save_path)
 
     if log_save_path is not None:
         ensure_dir(os.path.dirname(log_save_path))
@@ -95,6 +99,78 @@ def predict(data_loader,
 
     return_data = {
         'metrics': log,
-        'logits': outputs
+        'outputs_predictions': outputs_predictions
     }
     return return_data
+
+def save_outputs_predictions(outputs, save_path):
+    '''
+    Given torch.tensor of outputs, calculate probabilities and predictions and save
+    
+    Arg(s):
+        outputs : torch.tensor
+            Model outputs
+        save_path : str 
+            Path to save outputs to
+    '''
+    # Ensure directory exists
+    ensure_dir(os.path.dirname(save_path))
+
+    # Calcluate probabilities and predictions
+    probabilities = torch.softmax(outputs, dim=1)
+    predictions = torch.argmax(probabilities, dim=1)
+
+    # Verify shape and values
+    assert probabilities.shape == outputs.shape
+    assert (torch.abs(torch.sum(probabilities, dim=1) - 1) < 1e-3).all()
+    assert predictions.shape[0] == outputs.shape[0]
+
+    # Move to CPU and convert to numpy (if they aren't already)
+    try: 
+        outputs = outputs.cpu().numpy()
+    except:
+        pass
+    try:
+        probabilities = probabilities.cpu().numpy()
+    except:
+        pass
+    try:
+        predictions = predictions.cpu().numpy()
+    except:
+        pass
+    
+
+    save_data = {
+        'test': {
+            'outputs': outputs,
+            'probabilities': probabilities,
+            'predictions': predictions
+        }
+    }
+    torch.save(save_data, save_path)
+    return save_data
+
+def restore_and_test(model,
+                    config,
+                    trial_dir,
+                    model_restore_path,
+                    val_dataloader,
+                    metric_fns,
+                    device,
+                    loss_fn):
+
+    output_save_path = os.path.join(trial_dir, "outputs_predictions.pth")
+    log_save_path = os.path.join(trial_dir, "val_metrics.pth")
+
+    model.restore_model(model_restore_path)
+
+    validation_data = predict(
+        data_loader=val_dataloader,
+        model=model,
+        metric_fns=metric_fns,
+        device=device,
+        loss_fn=loss_fn,
+        output_save_path=output_save_path,
+        log_save_path=log_save_path)
+
+    return validation_data
