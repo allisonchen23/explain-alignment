@@ -5,9 +5,13 @@
 #SBATCH --cpus-per-task=8    # Specify the number of CPUs your task will need.
 #SBATCH --gres=gpu:rtx_3090:1          # the number of GPUs requested
 #SBATCH --mem=50G             # memory 
-#SBATCH -o temp/run.txt         # send stdout to outfile
-#SBATCH -e temp/run.txt         # send stderr to errfile
+#SBATCH -o slurm_logs/%A_%a_out.txt         # send stdout to outfile
+#SBATCH -e slurm_logs/%A_%a_err.txt         # send stderr to errfile
 #SBATCH -t 72:00:00           # time requested in hour:minute:second
 
+CONFIG_PATH="configs/repeated_trials/$1.json"
+
+echo $CONFIG_PATH
 python src/train.py \
---config configs/repeated_trials/debug_cifar_pixel_NA.json \
+--config $CONFIG_PATH \
+--trial_id $SLURM_ARRAY_TASK_ID
