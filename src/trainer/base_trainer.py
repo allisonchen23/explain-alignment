@@ -1,9 +1,11 @@
 import torch
-import os
+import os, sys
 from abc import abstractmethod
 from numpy import inf
 from logger import TensorboardWriter
 
+sys.path.insert(0, 'src')
+import utils.wandb_utils as wandb_utils
 
 class BaseTrainer:
     """
@@ -88,6 +90,10 @@ class BaseTrainer:
                     self.mnt_best = log[self.mnt_metric]
                     not_improved_count = 0
                     best = True
+                    # Log best on wandb too!
+                    wandb_utils.log(
+                        {'best_{}'.format(self.mnt_metric): self.mnt_best}, 
+                        split='val')
                 else:
                     not_improved_count += 1
 
