@@ -84,7 +84,7 @@ def save_csv(df, save_path, overwrite=False):
     ensure_dir(os.path.dirname(save_path))
     if overwrite:
         df.to_csv(save_path)
-        print("Saved migration_df to {}".format(save_path))
+        print("Saved df to {}".format(save_path))
     else:
         if os.path.exists(save_path):
             print("File exists at {}".format(save_path))

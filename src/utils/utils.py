@@ -235,6 +235,25 @@ def copy_file(file_path, save_dir):
     save_path = os.path.join(save_dir, os.path.basename(file_path))
     shutil.copy(file_path, save_path)
 
+def copy_tree(dir_path, save_dir):
+    '''
+    Given path to a directory, copy all files/folders recursively into save_dir
+
+    Arg(s):
+        dir_path : str
+            directory containing files/folders to copy
+        save_dir : str
+            directory to save to
+    '''
+    assert os.path.exists(dir_path)
+    ensure_dir(os.path.dirname(save_dir))
+    if os.path.exists(save_dir):
+        raise ValueError("Directory {} already exists".format(save_dir))
+    shutil.copytree(dir_path, save_dir)
+
+
+
+
 def list_to_dict(list_):
     '''
     Given a list, return a dictionary keyed by the elements of the list to corresponding indices
