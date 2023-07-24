@@ -34,7 +34,8 @@ def run_hparam_search(config_json,
                       config_path,
                       learning_rates,
                       weight_decays,
-                    #   debug=False,
+                      train_script_path,
+                      debug=False,
                     #   print_timestamp=True,
                       ):
     # if debug:
@@ -46,7 +47,7 @@ def run_hparam_search(config_json,
     sweep_config = {
         'method': 'grid',
         'name': config_json['name'],
-        'program': 'src/train.py',
+        'program': train_script_path,
         'metric': {
             'goal': 'maximize',
             'name': 'val/accuracy',
@@ -60,7 +61,7 @@ def run_hparam_search(config_json,
             '${program}',
             '--config',
             config_path,
-            '--timestamp',
+            '--trial_id',
             str(timestamp)
 
         ]
@@ -77,6 +78,7 @@ def run_hparam_search(config_json,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', '-c', required=True, type=str, help='Path to config file')
+    parser.add_argument('--train_script_path', required=True, type=str, help='Path to training script')
     parser.add_argument('--learning_rates', '--lr', type=float, nargs="+",
         default=[1e-4, 1e-3, 5e-2, 1e-2, 5e-1, 1e-1], help='Space delimited list of learning rates')
     parser.add_argument('--weight_decays', '--wd', type=float, nargs="+",
@@ -98,6 +100,7 @@ if __name__ == "__main__":
     run_hparam_search(
         config_json=config_json,
         config_path=args.config,
+        train_script_path=args.train_script_path,
         learning_rates=args.learning_rates,
         weight_decays=args.weight_decays,
         debug=args.debug

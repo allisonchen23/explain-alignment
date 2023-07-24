@@ -22,7 +22,7 @@ import model.loss as module_loss
 import datasets.datasets as module_data
 import model.model as module_model
 
-from src.train_wandb import main as train_fn
+from train_hparam_search import main as train_fn
 from predict import predict
 from parse_config import ConfigParser
 
