@@ -16,7 +16,9 @@ from utils.metric_utils import top_2_confusion, add_confidence, sort_and_bin_df,
 
 DATASETS_AVAILABLE = ['cifar', 'ade20k']
 HUMAN_SURVEY_RESULTS_DIR = os.path.join('saved', 'ADE20K', 'survey_results', 'ADE20K_soft_labels')
-def process_human_survey_csvs(csv_dir):
+def process_human_survey_csvs(csv_dir, 
+                              csv_save_path=None,
+                              verbose=True):
     MEASUREMENT_COLUMN_NAMES = ['selectedAttrs', 'attrUncs']
     TASK_METADATA_COLUMN_NAMES = ['filename', 'task', 'concept_group']
 
@@ -31,7 +33,8 @@ def process_human_survey_csvs(csv_dir):
     df_list = []
     # For each CSV, get the human soft labels and add to the dataframe list
     for csv_path in csv_paths:
-        print("Processing {}".format(os.path.basename(csv_path)))
+        if verbose:
+            print("Processing {}".format(os.path.basename(csv_path)))
         df = pd.read_csv(csv_path)
         # Separate dataframe into rows with measurements and with metadata
         measurement_df = df[MEASUREMENT_COLUMN_NAMES]
@@ -63,9 +66,15 @@ def process_human_survey_csvs(csv_dir):
 
     # Concatenate rows of all dataframes together
     df = pd.concat(df_list)
+    if csv_save_path is not None:
+        ensure_dir(os.path.dirname(csv_save_path))
+        df.to_csv(csv_save_path)
+    
     return df
 
-def save_ade20k_human_out(df, human_output_save_path):
+def save_ade20k_human_out(df, 
+                          human_output_save_path, 
+                          verbose=True):
     SCENE_CATEGORIES_PATH = os.path.join('data', 'ade20k', 'scene_categories.txt')
 
     # Create 2-way dictionary for scene categories
@@ -106,7 +115,8 @@ def save_ade20k_human_out(df, human_output_save_path):
     human_outputs_predictions = {
         'outputs': human_outputs,
         'probabilities': human_probabilities,
-        'predictions': human_predictions
+        'predictions': human_predictions,
+        'filenames': df['filename']
     }
 
     # Save human outputs
@@ -122,7 +132,8 @@ def save_ade20k_human_out(df, human_output_save_path):
 def get_outputs(dataset_name: str,
                 human_output_path: str,
                 model_output_path: str,
-                explainer_output_path: str):
+                explainer_output_path: str,
+                verbose=True):
     '''
     Given paths to outputs for human, model and explainers, load and reformat to return uniform standard
     Arg(s):
@@ -149,13 +160,18 @@ def get_outputs(dataset_name: str,
         # ground_truth_labels = torch.load(processed_data_path)['test']['predictions']
         return outputs
     elif dataset_name == 'ade20k':
-        df = process_human_survey_csvs(csv_dir=HUMAN_SURVEY_RESULTS_DIR)
         # Process or load human outputs
         if not os.path.exists(human_output_path):
+            csv_save_path = os.path.join(os.path.dirname(HUMAN_SURVEY_RESULTS_DIR), 'human_results.csv')
+            df = process_human_survey_csvs(
+                csv_dir=HUMAN_SURVEY_RESULTS_DIR,
+                csv_save_path=csv_save_path)
             human_out = save_ade20k_human_out(
-                human_outputs_save_path=human_output_path)
+                df=df,
+                human_output_save_path=human_output_path)
         else:
             human_out = torch.load(human_output_path)
+            
         outputs = {
             'human': human_out
         }
@@ -172,18 +188,16 @@ def get_outputs(dataset_name: str,
             val_name_idx_dict[image_name] = idx
 
         # Pick out explainer and model outputs for selected images
-
         for name, agent_outputs in zip(['explainer', 'model'], [explainer_out, model_out]):
             cur_out = {}
             for output_type in ['outputs', 'probabilities', 'predictions']:
                 cur_outputs = agent_outputs[output_type]
                 accumulator = []
-                for image_name in df['filename']:
+                for image_name in human_out['filenames']:
                     val_idx = val_name_idx_dict[image_name]
                     cur_item = cur_outputs[val_idx]
                     accumulator.append(cur_item)
-                cur_out[output_type] = accumulator
-                print("acc len: {}".format(len(accumulator)))
+                cur_out[output_type] = np.array(accumulator)
             outputs[name] = cur_out
         return outputs
 
@@ -292,15 +306,17 @@ def generate_csv(dataset_name,
                  human_output_path,
                  model_output_path,
                  explainer_output_path,
-                 csv_save_dir,
+                 csv_save_dir=None,
+                 overwrite=True,
                  verbose=True):
 
     # Check if file already exists at csv_save_path
-    csv_save_path = os.path.join(csv_save_dir, 'uncertainties_alignment.csv')
-    if os.path.exists(csv_save_path):
-        print("File exists at {}. Aborting".format(csv_save_path))
-        return
-    ensure_dir(csv_save_dir)
+    if csv_save_dir is not None:
+        csv_save_path = os.path.join(csv_save_dir, 'uncertainties_alignment.csv')
+        if os.path.exists(csv_save_path) and not overwrite:
+            print("File exists at {}. Aborting".format(csv_save_path))
+            return
+        ensure_dir(csv_save_dir)
 
     # Check dataset is valid
     assert dataset_name in DATASETS_AVAILABLE, "Unsupported dataset '{}'. Try one of {}".format(
@@ -313,12 +329,17 @@ def generate_csv(dataset_name,
         model_output_path=model_output_path,
         explainer_output_path=explainer_output_path
     )
-    print(outputs.keys())
-    df = build_csv(outputs)
-    df.to_csv(csv_save_path)
+    # # If only 1 explainer output:
+    # if len(outputs['explainer_out']['outputs'].shape) == 2:
+    df = build_csv(outputs, verbose=verbose)
+    if csv_save_dir is not None:
+        df.to_csv(csv_save_path)
 
-    if verbose:
-        print("Saved dataframe to {}".format(csv_save_path))
+        if verbose:
+            print("Saved dataframe to {}".format(csv_save_path))
+    return df
+    # else: 
+    #     print(len(outputs['explainer_out']['outputs'].shape))
 
 
 
