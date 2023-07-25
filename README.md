@@ -12,4 +12,4 @@ SBATCH command: `sbatch bash/explainer_hparam_search/wandb_train_<explainer_type
 SBATCH command: `sbatch bash/explainer_hparam_search/train_<explainer_type>_hparam.sh`.
 
 ## Running Repeated Trials
-SBATCH command: `sbatch --array [1-n_jobs]%<n_jobs_at_once> <path_to_bash_file> <config_json_name>`. For example, `sbatch --array [1-20]%5 bash/repeated_trials/run_trials.sh cifar_pixel_NA` will run 20 trials (at most 5 at a time) using the config file `configs/repeated_trials/cifar_pixel_NA.json`.
+SBATCH command: `sbatch --array [1-n_jobs]%<n_jobs_at_once> <path_to_bash_file> <config_json_name>`. For example, `sbatch --array [1-20]%5 bash/repeated_trials/run_trials.sh cifar_pixel_NA` will run 20 trials (at most 5 at a time) using the config file `configs/repeated_trials/cifar_pixel_NA.json`. 
