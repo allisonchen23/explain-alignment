@@ -72,7 +72,7 @@ def run_hparam_search(config_json,
     )
     print(sweep_id)
     for trial_idx in range(n_trials):
-        wandb.agent('grad-student-descent/CIFAR_SIFT_explainer_hparam/{}'.format(sweep_id))
+        wandb.agent('grad-student-descent/{}/{}'.format(config_json['name'], sweep_id))
         # os.system('sbatch bash/start_sweep.sh {} {}'.format(sweep_id, config_json['name']))
 
 if __name__ == "__main__":
@@ -93,9 +93,6 @@ if __name__ == "__main__":
         args.weight_decays = [0]
 
     config_json = read_json(args.config)
-
-    # if args.build_save_dir:
-    #     config_json['trainer']['save_dir'] = build_save_dir(config_json)
 
     run_hparam_search(
         config_json=config_json,

@@ -97,8 +97,16 @@ def save_best_outputs_predictions(best_trial_dir,
     # Validate that model run on the val_dataloader will give the same outputs as in test_outputs
 
     # Load test outputs
-    test_outputs_path = os.path.join(save_best_model_dir, 'outputs.pth')
-    test_outputs = torch.load(test_outputs_path)
+    try:
+        test_outputs_path = os.path.join(save_best_model_dir, 'outputs.pth')
+        test_outputs = torch.load(test_outputs_path)
+    except Exception as e:
+        print(e)
+        
+        # Load outputs from the best trial_dir
+        test_outputs_path = os.path.join(best_trial_dir, 'val_outputs.pth')
+        print("Loading test outputs from {}".format(test_outputs_path))
+        test_outputs = torch.load(test_outputs_path)
 
     if model is not None and val_dataloader is not None:
         config_json = read_json(config_path)
@@ -111,10 +119,14 @@ def save_best_outputs_predictions(best_trial_dir,
             device, _ = prepare_device(config_json['n_gpu'])
         if loss_fn is None:
             loss_fn = getattr(module_loss, config_json['loss'])
-
-        model_restore_path = os.path.join(save_best_model_dir, 'model.pth')
-        model.restore_model(model_restore_path)
-
+        
+        try: 
+            model_restore_path = os.path.join(save_best_model_dir, 'model.pth')
+            model.restore_model(model_restore_path)
+        except:
+            trial_model_restore_path = os.path.join(best_trial_dir, 'models', 'model_best.pth')
+            model.restore_model(trial_model_restore_path)
+            shutil.copy(trial_model_restore_path, model_restore_path)
         validation_data = predict(
             data_loader=val_dataloader,
             model=model,
