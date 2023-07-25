@@ -202,7 +202,7 @@ def bar_graph(data,
         display_values : bool
             Boolean to display values of each bar or not
         errors : N x C np.array of errors for each bar
-            N : number of data points
+            N : number of bar groups
             C : number of bar classes
         labels : list[str]
             C length list of labels for each bar along x-axis
@@ -344,7 +344,7 @@ def bar_graph(data,
             )
     if fig_size is not None:
         fig.set_figheight(fig_size[1])
-        fig.set_figheight(fig_size[0])
+        fig.set_figwidth(fig_size[0])
     plt.tight_layout()
 
     # If save_path is not None, save graph
