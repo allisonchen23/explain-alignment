@@ -1,6 +1,7 @@
 import numpy as np
 import os, sys
 from tqdm import tqdm
+import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
 sys.path.insert(0, 'src')
@@ -40,12 +41,16 @@ def get_frequent_attributes(attributes,
             list of split names to key dictionaries
 
     Returns:
-        freq_attributes_dict : dict[str : np.array]
+        freq_attributes_dict : dict[str : np.array], metadata
+            metadata : dictionary holding the one-hot frequent attributes and the idxs of frequent attributes
     '''
     train_counts = np.sum(attributes['train'], axis=0)
 
     # Obtain one-hot encoding of attributes that exceed frequency threshold
     freq_attributes_one_hot = np.where(train_counts > frequency_threshold, 1, 0)
+    # Obtain indices of attributes taht exceed frequency threshold
+    freq_attr_idxs = np.nonzero(freq_attributes_one_hot)[0]
+    
     # Mask out infrequent attributes
     freq_attributes_dict = {}
     for split in splits:
@@ -76,8 +81,12 @@ def get_frequent_attributes(attributes,
         print("{} examples have no more attributes".format(zeroed_ctr))
         print("{}/{} examples affected".format(ctr, len(cur_attributes)))
         freq_attributes_dict[split] = freq_attributes
-
-    return freq_attributes_dict, freq_attributes_one_hot
+    
+    metadata = {
+        'freq_attr_one_hot': freq_attributes_one_hot,
+        'freq_attr_idxs': freq_attr_idxs
+    }
+    return freq_attributes_dict, metadata
 
 def hyperparam_search_l1(train_features, train_labels, val_features, val_labels,
                       Cs = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 3, 5]):
@@ -163,4 +172,51 @@ def partition_paths_by_congruency(explainer_predictions,
         'incongruent': incongruent_paths
     }
 
-
+def get_attribute_label_name_dicts(labels_path='data/broden1_224/label.csv'):
+    '''
+    Given path to label file, return two dictionaries: one that maps idx -> name and name -> idx
+    
+    Arg(s):
+        labels_path : str
+            path to labels.csv mapping attribute labels to names
+        
+    Returns:
+        tuple(dict, dict)
+            mapping of idx -> name and name -> idx
+    '''
+    df = pd.read_csv(labels_path)
+    assert 'number' in df.columns
+    assert 'name' in df.columns
+    idx_name_dict = {}
+    name_idx_dict = {}
+    for idx, name in zip(df['number'], df['name']):
+        idx_name_dict[idx] = name
+        name_idx_dict[name] = idx
+        
+    return idx_name_dict, name_idx_dict
+    
+def convert_sparse_to_dense_attributes(sparse_attributes,
+                                       used_attributes_idxs):
+    '''
+    Given a np.array of sparse attributes, return a dense version keeping only idxs specified in used_attributes_idxs
+    
+    Arg(s):
+        sparse_attributes : N x A np.array
+            N : number of samples
+            A : number of sparse attributes
+        used_attributes_idxs : U np.array
+            U : number of used atttributes
+            
+    Returns:
+        N x U np.array : dense one-hot encoding of the attributes
+    '''
+    
+    assert len(sparse_attributes.shape) == 2
+    
+    dense_attributes = sparse_attributes[:, used_attributes_idxs]
+    
+    # Sanity checks
+    N, U = dense_attributes.shape
+    assert N == sparse_attributes.shape[0]
+    assert U == len(used_attributes_idxs)
+    return dense_attributes
