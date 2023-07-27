@@ -91,7 +91,11 @@ def predict(data_loader,
             outputs=outputs,
             save_path=output_save_path
         )
-        # torch.save(outputs, output_save_path)
+    else:
+        outputs_predictions = save_outputs_predictions(
+            outputs=outputs,
+            save_path=None
+        )
 
     if log_save_path is not None:
         ensure_dir(os.path.dirname(log_save_path))
@@ -103,7 +107,7 @@ def predict(data_loader,
     }
     return return_data
 
-def save_outputs_predictions(outputs, save_path):
+def save_outputs_predictions(outputs, save_path=None):
     '''
     Given torch.tensor of outputs, calculate probabilities and predictions and save
     
@@ -114,7 +118,8 @@ def save_outputs_predictions(outputs, save_path):
             Path to save outputs to
     '''
     # Ensure directory exists
-    ensure_dir(os.path.dirname(save_path))
+    if save_path is not None:
+        ensure_dir(os.path.dirname(save_path))
 
     # Calcluate probabilities and predictions
     probabilities = torch.softmax(outputs, dim=1)
@@ -147,7 +152,9 @@ def save_outputs_predictions(outputs, save_path):
             'predictions': predictions
         }
     }
-    torch.save(save_data, save_path)
+    
+    if save_path is not None:
+        torch.save(save_data, save_path)
     return save_data
 
 def restore_and_test(model,
