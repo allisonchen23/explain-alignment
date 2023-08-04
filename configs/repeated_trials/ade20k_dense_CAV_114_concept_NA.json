@@ -1,0 +1,63 @@
+{
+    "name": "ade20k_dense_CAV_114_concept_NA_repeated_trials",
+    "n_gpu": 1,
+    "method": "train",
+    "arch": {
+        "type": "LinearLayers",
+        "args": {
+            "n_in_features": 114,
+            "n_classes": 16,
+            "n_hidden_features": [],
+            "bias": true,
+            "activation": "relu"
+        }
+    },
+    "dataset": {
+        "type": "KDDataset",
+        "args": {
+            "input_features_path": "data/explainer_inputs/ade20k/concepts/cav/filter_attr_300/dense_cav_attributes.pth",
+            "labels_path": "saved/PlacesCategoryClassification/0510_102912/ADE20K_predictions/saga/outputs_predictions.pth",
+            "out_type": "probabilities"
+        }
+    },
+    "data_loader": {
+        "args": {
+            "batch_size": 256,
+            "num_workers": 8
+        }
+    },
+    "optimizer": {
+        "type": "SGD",
+        "args": {
+            "lr": 0.5,
+            "weight_decay": 0
+        }
+    },
+    "loss": "cross_entropy",
+    "metrics": [
+        "accuracy",
+        "RMSE",
+        "per_class_accuracy",
+        "precision",
+        "recall",
+        "f1",
+        "predicted_class_distribution"
+    ],
+    "lr_scheduler": {
+        "type": "StepLR",
+        "args": {
+            "step_size": 101,
+            "gamma": 1
+        }
+    },
+    "trainer": {
+        "epochs": 150,
+        "save_dir": "saved/saved_explainers/repeated_trials",
+        "save_period": 1,
+        "verbosity": 2,
+        "monitor": "max val_accuracy",
+        "early_stop": 20,
+        "save_val_results": true,
+        "tensorboard": true
+    }
+}

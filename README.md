@@ -3,7 +3,7 @@
 ## Running Hyperparameter Searches
 
 ### Logging on wandb
-SBATCH command: `sbatch bash/explainer_hparam_search/wandb_train_<explainer_type>_hparam.sh`. 
+SBATCH command: `sbatch bash/explainer_hparam_search/wandb_hparam_search.sh <config_json_name>`. For example: `sbatch bash/explainer_hparam_search/wandb_hparam_search.sh train_ade20k_dense_ace_images_2000_concept_25_concept_explainer_hparam`. 
 * This will pass in the appropriate config file from `configs/explainer_hparam_search`. The flag `--build_save_dir` will create a save directory hierarchy based on the explainer parameters from the config file including `dataset.args.input_feature_path` and `arch.args.n_hidden_features`.
 * This will run the file `explainer_hparam_search_wandb.py` which sets up a wandb hyperparameter sweep and start agents for each learning rate and weight decay combination.
 * The training script can be specified as an argument `--train_script_path`.
