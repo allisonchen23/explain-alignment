@@ -165,6 +165,15 @@ def save_image(image, save_path):
     image = Image.fromarray(image)
     image.save(save_path)
 
+def save_torch(data, save_dir, name, overwrite=False):
+    ensure_dir(save_dir)
+    save_path = os.path.join(save_dir, '{}.pth'.format(name))
+    if not overwrite and os.path.exists(save_path):
+        print("File {} already exists and overwrite is False. Aborting".format(save_path))
+        return
+    torch.save(data, save_path)
+    
+    
 def ensure_dir(dirname):
     dirname = Path(dirname)
     if not dirname.is_dir():
