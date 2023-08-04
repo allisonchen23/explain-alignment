@@ -1,11 +1,11 @@
 {
-    "name": "ade20k_dense_ace_images_800_concept_100_concept_explainer_hparam",
+    "name": "ade20k_dense_CAV_114_concept_explainer_hparam",
     "n_gpu": 1,
     "method": "train",
     "arch": {
         "type": "LinearLayers",
         "args": {
-            "n_in_features": 100,
+            "n_in_features": 114,
             "n_classes": 16,
             "n_hidden_features": [],
             "bias": true,
@@ -15,7 +15,7 @@
     "dataset": {
         "type": "KDDataset",
         "args": {
-            "input_features_path": "data/explainer_inputs/ade20k/concepts/ace/n_800-concept_100-min_20-max_40/splits_dense_one_hot_attributes.pth",
+            "input_features_path": "data/explainer_inputs/ade20k/concepts/cav/filter_attr_300/dense_cav_attributes.pth",
             "labels_path": "saved/PlacesCategoryClassification/0510_102912/ADE20K_predictions/saga/outputs_predictions.pth",
             "out_type": "probabilities"
         }
