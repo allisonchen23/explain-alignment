@@ -91,7 +91,9 @@ class ConceptDiscovery(object):
         save_dir = os.path.join(self.checkpoint_dir, 'saved')
         features_restore_path = os.path.join(save_dir, 'features_index_numbers.pth' )
         # Special checks for if we want to save the image patches
-        if save_image_patches:
+        if save_image_patches and overwrite:
+            load_features = False
+        elif save_image_patches:
             saved_filepaths_path = os.path.join(self.checkpoint_dir, 'filepaths.txt')
             if not os.path.exists(saved_filepaths_path):
                 load_features = False
