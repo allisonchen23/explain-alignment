@@ -10,6 +10,7 @@ slurm_logs/
 temp/
 wandb/
 scratch*
+**/.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
