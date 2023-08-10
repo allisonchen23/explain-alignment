@@ -25,6 +25,28 @@ def get_one_hot_attributes(data, paths, n_attr, splits=['train', 'val', 'test'])
         attributes[split] = np.stack(attributes[split], axis=0)
     return attributes
 
+def sort_attributes(one_hot_attributes):
+    '''
+    Given the one hot attributes, return:
+        (1) the indices to sort them
+        (2) the number of occurrences
+    Filter out the attributes with 0 occurrences in training
+
+    Arg(s):
+        one_hot_attributes : dict[str : np.array]
+            dictionary of one hot attributes keyed by split
+
+    '''
+    train_attributes = one_hot_attributes['train']
+    occurrence_counter = np.sum(train_attributes, axis=0)
+    sorted_idxs = np.argsort(-occurrence_counter)
+    sorted_occurrences = occurrence_counter[sorted_idxs]
+    # Only keep non-zero attributes
+    n_nonzero = np.count_nonzero(sorted_occurrences)
+    sorted_idxs = sorted_idxs[:n_nonzero]
+    sorted_occurrences = sorted_occurrences[:n_nonzero]
+    return sorted_idxs, sorted_occurrences
+
 def get_frequent_attributes(attributes,
                                frequency_threshold=150,
                                splits=['train', 'val', 'test']):
@@ -87,6 +109,26 @@ def get_frequent_attributes(attributes,
         'freq_attr_idxs': freq_attr_idxs
     }
     return freq_attributes_dict, metadata
+
+def get_attr_name_dict(labels_csv_path):
+    '''
+    Given path to labels.csv, return dictionary of attribute idx -> name
+
+    Arg(s):
+        labels_csv_path : str
+            Path to labels.csv from broden
+        
+    Returns:
+        dict[int] : str
+            Mapping from index to string
+    '''
+    labels_df = pd.read_csv(labels_csv_path)
+    dic = {}
+    for idx, name in zip(labels_df['number'], labels_df['name']):
+        idx = int(idx)
+        dic[idx] = name
+
+    return dic
 
 def hyperparam_search_l1(train_features, train_labels, val_features, val_labels,
                       Cs = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 3, 5]):
