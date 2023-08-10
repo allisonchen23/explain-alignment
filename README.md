@@ -17,3 +17,14 @@ Example command to call: `python save_best_hparam.py --trial_dir saved/saved_exp
 
 ## Running Repeated Trials
 SBATCH command: `sbatch --array [1-n_jobs]%<n_jobs_at_once> <path_to_bash_file> <config_json_name>`. For example, `sbatch --array [1-20]%5 bash/repeated_trials/run_trials.sh cifar_pixel_NA` will run 20 trials (at most 5 at a time) using the config file `configs/repeated_trials/cifar_pixel_NA.json`. 
+
+## Pipeline
+
+### Saving model features & outputs/probabilities/predictions of images
+* To save features: Use `src/save_features.py` Need to pass in config file such as the one found in `saved/places_model_ade20k_scene_labeled_features/0810_104502`
+    * Default uses the resnet18 trained on Places365
+* To save model outputs/probabilities/predictions: Run `src/save_model_outputs.py` which takes in path to a sklearn.LogisticRegression file and model features
+
+### Get top labeled concepts as feature vectors
+* Run `src/save_attributes.py` which will
+    * Create one hot attributes for each split
