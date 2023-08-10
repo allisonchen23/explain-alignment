@@ -295,7 +295,7 @@ def print_dict(dictionary, indent_level=0):
             print("{}{} : {}".format(tabs, key, val))
 
 
-def informal_log(s, filepath=None, to_console=True, timestamp=False):
+def informal_log(s, filepath=None, to_console=True, timestamp=True):
     '''
     Logs a string to either file or console
     Arg(s):
