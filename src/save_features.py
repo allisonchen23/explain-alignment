@@ -45,6 +45,7 @@ import argparse
 from tqdm import tqdm
 import numpy as np
 import os, sys
+import shutil
 
 sys.path.insert(0, 'src')
 from utils.utils import ensure_dir, read_json
@@ -59,8 +60,9 @@ def save_features(config_path):
     device, _ = prepare_device(config_dict['n_gpu'])
     dtype = torch.float32
     timestamp = datetime.now().strftime(r'%m%d_%H%M%S')
-    save_dir = os.path.join('saved', config_dict['dataset']['name'], timestamp)
+    save_dir = os.path.join('saved', config_dict['name'], timestamp)
     ensure_dir(save_dir)
+    shutil.copy(config_path, os.path.join(save_dir, 'config.json'))
     # arch = 'resnet18'
     
     arch = config_dict['arch']['type']
@@ -90,14 +92,15 @@ def save_features(config_path):
         datasets[split] = dataset
 
     for name, m in [
-        ('logits', places_model),
+        # ('logits', places_model),
         ('features', places_model_base)
         ]:
         print("Saving {} for places model".format(name))
         with torch.no_grad():
 
             m = m.to(device)
-
+            all_outputs = {}
+            all_paths = {}
             for split in splits:
                 dataset = datasets[split]
                 dataloader = torch.utils.data.DataLoader(
@@ -132,24 +135,30 @@ def save_features(config_path):
                 outputs = np.concatenate(outputs, axis=0)
 
                 assert len(image_paths) == outputs.shape[0]
-                data = {
-                    'paths': image_paths,
-                    name: outputs
-                }
-                if name == 'logits':
-                    scenes = np.concatenate(scenes, axis=0)
+                # data = {
+                #     'paths': image_paths,
+                #     name: outputs
+                # }
+                all_outputs[split] = outputs
+                all_paths[split] = image_paths
+                # if name == 'logits':
+                #     scenes = np.concatenate(scenes, axis=0)
 
-                    data['predictions'] = scenes
-                    save_name = 'logits_predictions'
-                else:
-                    save_name = name
-                save_path = os.path.join(save_dir, '{}_{}.pth'.format(split, save_name))
-                torch.save(data, os.path.join(save_path))
-                print("Saved {} on {} split to {}".format(name, split, save_path))
+                #     data['predictions'] = scenes
+                #     save_name = 'logits_predictions'
+                # else:
+                #     save_name = name
+                # save_path = os.path.join(save_dir, '{}_{}.pth'.format(split, save_name))
+                # torch.save(data, os.path.join(save_path))
+                # print("Saved {} on {} split to {}".format(name, split, save_path))
                 # pickle.dump(img_to_feature, open('ADE20k/{}_{}.pkl'.format(split, name), 'wb+'))
                 # if name=='logits':
                 #     pickle.dump(img_to_scene, open('ADE20k/{}_scene.pkl'.format(split), 'wb+'))
-
+            save_path = os.path.join(save_dir, '{}.pth'.format(name))
+            torch.save(all_outputs, save_path)
+            paths_save_path = os.path.join(save_dir, 'paths.pth')
+            torch.save(all_paths, paths_save_path)
+            print("Saved outputs to {} and paths to {}".format(save_path, paths_save_path))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='ImageNet Predictions')
