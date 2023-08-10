@@ -169,7 +169,10 @@ class CAV(object):
         if self.hparams['model_type'] == 'linear':
             lm = linear_model.SGDClassifier(alpha=self.hparams.alpha, tol=1e-3, max_iter=1000)
         elif self.hparams['model_type'] == 'logistic':
-            lm = linear_model.LogisticRegression()
+            if 'model_params' in self.hparams:
+                lm = linear_model.LogisticRegression(**self.hparams['model_params'])
+            else:
+                lm = linear_model.LogisticRegression()
         else:
             raise ValueError('Invalid hparams.model_type: {}'.format(
                 self.hparams.model_type))
