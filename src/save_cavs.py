@@ -1,3 +1,4 @@
+import argparse
 import os, sys
 from sklearn.linear_model import LogisticRegression
 from tqdm import tqdm
@@ -45,9 +46,20 @@ class LabeledCavs(object):
                                   n_trials,
                                   overwrite=False,
                                   Cs=[0.001, 0.01, 0.1, 1, 5]):
+        '''
+        Train n_trials CAVs for a specific attribute
+
+        Returns: 
+            list[CAV] : list of CAVs, one for each trial
+        '''
         # Create save dir for this attribute
         cav_dir = os.path.join(self.cav_save_dir, attr_id)
-        
+        # if os.path.isdir(cav_dir) and len(os.listdir(cav_dir)) >= n_trials:
+        #     informal_log("At least {} trials already exists in {}. Loading CAVs".format(
+        #         n_trials, cav_dir), self.log_path)
+        #     for trial_
+        informal_log("Saving/Loading CAVs in {}".format(cav_dir), self.log_path)
+
         # Get idxs of positive and negative samples
         positive_idxs = np.nonzero(train_labels)[0]
         negative_idxs = np.nonzero(1 - train_labels)[0]
@@ -56,22 +68,20 @@ class LabeledCavs(object):
 
         n_training_samples = min(len(positive_idxs), len(negative_idxs))
 
-        # Balance out number of positive and negative features
-        if n_training_samples == len(positive_idxs):
-            positive_training_features = positive_features
-            negative_training_features = negative_features[
-                np.random.choice(len(negative_features), size=n_training_samples, replace=False)]
-        else:
-            positive_training_features = positive_features[
-                np.random.choice(len(positive_features), size=n_training_samples, replace=False)]
-            negative_training_features = negative_features
-
-        # Do a hparam search for C
-        best_c = -1
-        best_accuracy = -1
-        accuracies = []
-        for C in Cs:
-            random_name = 'random_hparam_C_{}'.format(C)
+        cavs = []
+        # Random trials
+        for trial_idx in range(n_trials):
+            # Balance out number positive and negative activations
+            if n_training_samples == len(positive_idxs):
+                positive_training_features = positive_features
+                negative_training_features = negative_features[
+                    np.random.choice(len(negative_features), size=n_training_samples, replace=False)]
+            else:
+                positive_training_features = positive_features[
+                    np.random.choice(len(positive_features), size=n_training_samples, replace=False)]
+                negative_training_features = negative_features
+            
+            random_name = 'random_trial_{}'.format(trial_idx)
             activations = {
                 attr_id: {
                     'avgpool': positive_training_features
@@ -80,37 +90,23 @@ class LabeledCavs(object):
                     'avgpool': negative_training_features
                 }
             }
-            cav_hparams = self.cav_hparams.copy()
-            cav_hparams['model_params'].update({'C': C})
             cav_instance = cav.get_or_train_cav(
                 concepts=[attr_id, random_name],
                 bottleneck='avgpool',
                 acts=activations,
                 cav_dir=cav_dir,
-                cav_hparams=cav_hparams,
-                overwrite=True,
+                cav_hparams=self.cav_hparams,
+                overwrite=overwrite,
                 save_linear_model=True,
+                Cs_hparam_search=Cs,
                 log_path=self.log_path
             )
-            cav_accuracy = cav_instance.accuracies['overall']
-            accuracies.append(cav_accuracy)
-            if cav_accuracy > best_accuracy:
-                best_accuracy = cav_accuracy
-                best_c = C
-            
-
-        # Once we have found the best C, run multiple trials
-        # cavs = []
-        # for trial_idx in n_trials:
-            # get random negative samples
-            # do something like ace._calculate_cav
-            # train cav
-            # cavs.append(cav)
-        # save cavs
-        pass
+            cavs.append(cav_instance)
+        return cavs
+        
     def train_cavs(self, 
                    n_attributes=None,
-                   n_trials=50):
+                   n_trials=20):
         n_total_attributes = len(self.sorted_attr_df)
 
         # Set n_attributes to a valid value
@@ -156,20 +152,26 @@ class LabeledCavs(object):
                 train_labels=attr_train_labels,
                 n_trials=n_trials
             )
-        # for each attribute:
-            # train_cav
-        pass
         
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--n_attributes', type=int, default=1, help='Number of attributes to calculate CAVs for. Starting with most to least frequent.')
+
+    args = parser.parse_args()
+
     features_path = 'saved/places_model_ade20k_scene_labeled_features/0810_104502/features.pth'
     sorted_attributes_csv_path = 'data/ade20k/scene_annotated/sorted_attributes.csv'
     attribute_save_dir = 'data/ade20k/scene_annotated'
     cav_save_dir = 'saved/places_model_ade20k_scene_labeled_features/cavs'
+    log_path = os.path.join(cav_save_dir, 'log.txt')
     labeled_cavs = LabeledCavs(
         features_path=features_path,
         sorted_attr_csv_path=sorted_attributes_csv_path,
         cav_save_dir=cav_save_dir,
-        attribute_save_dir=attribute_save_dir
+        attribute_save_dir=attribute_save_dir,
+        log_path=log_path
     )
-    labeled_cavs.train_cavs()
+    labeled_cavs.train_cavs(
+        n_attributes=args.n_attributes
+    )
