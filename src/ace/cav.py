@@ -149,6 +149,62 @@ class CAV(object):
         self.log_path = log_path
         self.debug = debug
 
+    def hparam_search(self, acts, Cs, save_linear_model=True):
+        '''
+        Train multiple CAVs based on C values to determine best C value
+
+        Arg(s):
+            acts : is a dictionary of activations. In particular, acts takes for of
+                {'concept1':{'bottleneck name1':[...act array...],
+                             'bottleneck name2':[...act array...],...
+                 'concept2':{'bottleneck name1':[...act array...],
+            Cs : list[float]
+                list if regularization values
+        '''
+        assert self.hparams['model_type'] == 'logistic', "Hyperparameter search only supported for 'logistic' model type. Received '{}'".format(self.hparams['model_type'])
+        
+        x, labels, labels2text = CAV._create_cav_training_set(
+            self.concepts, self.bottleneck, acts)
+        
+        best_overall_accuracy = -1
+        best_accuracies = None
+        # best_c = -1
+        best_lm = None
+        for C in Cs:
+            # Instantiate linear model
+            if self.hparams['model_type'] == 'linear':
+                lm = linear_model.SGDClassifier(alpha=self.hparams.alpha, tol=1e-3, max_iter=1000)
+            elif self.hparams['model_type'] == 'logistic':
+                if 'model_params' in self.hparams:
+                    lm = linear_model.LogisticRegression(C=C, **self.hparams['model_params'])
+                else:
+                    lm = linear_model.LogisticRegression(C=C)
+            else:
+                raise ValueError('Invalid hparams.model_type: {}'.format(
+                    self.hparams.model_type))
+            # Train linear model
+            accuracies = self._train_lm(lm, x, labels, labels2text)
+            # Compare overall accuracy to current best; update best if necessary
+            if accuracies['overall'] > best_overall_accuracy:
+                best_overall_accuracy = accuracies['overall']
+                best_accuracies = accuracies
+                # best_c = C
+                best_lm = lm
+
+        # After we find the best linear model, update attributes and save
+        if len(best_lm.coef_) == 1:
+            # if there were only two labels, the concept is assigned to label 0 by
+            # default. So we flip the coef_ to reflect this.
+            self.cavs = [-1 * best_lm.coef_[0], best_lm.coef_[0]]
+        else:
+            self.cavs = [c for c in best_lm.coef_]
+        self.accuracies = best_accuracies
+        self.linear_model = best_lm
+        self._save_cavs(
+            save_linear_model=save_linear_model
+        )
+
+            
     def train(self, acts, save_linear_model=True):
         """Train the CAVs from the activations.
 
@@ -221,8 +277,6 @@ class CAV(object):
 			# tf.logging.info('save_path is None. Not saving anything')
             informal_log("save_path is None. Not saving anything", self.log_path, timestamp=True)
 
-    def _hparam_search_lm(self, lm, Cs, x, y):
-        pass
     def _train_lm(self, lm, x, y, labels2text):
         """Train a model to get CAVs.
 
@@ -272,6 +326,7 @@ def get_or_train_cav(concepts,
                      cav_hparams=None,
                      overwrite=False,
                      save_linear_model=True,
+                     Cs_hparam_search=None,
                      log_path=None):
     """Gets, creating and training if necessary, the specified CAV.
 
@@ -312,11 +367,21 @@ def get_or_train_cav(concepts,
 
     # tf.logging.info('Training CAV {} - {} alpha {}'.format(
         # concepts, bottleneck, cav_hparams.alpha))
-    informal_log('Training CAV {} - {} alpha {}'.format(
-        concepts, bottleneck, cav_hparams['alpha']), log_path, timestamp=True)
+    
     cav_instance = CAV(concepts, bottleneck, cav_hparams, cav_path)
-    cav_instance.train(
-        acts={c: acts[c] for c in concepts},
-        save_linear_model=save_linear_model)
+    if Cs_hparam_search is not None:
+        informal_log('Training CAV {} - {} alpha {}\n Hyperparameter search over C: {}'.format(
+            concepts, bottleneck, cav_hparams['alpha'], Cs_hparam_search), log_path, timestamp=True)
+        cav_instance.hparam_search(
+            acts={c: acts[c] for c in concepts},
+            Cs=Cs_hparam_search,
+            save_linear_model=save_linear_model
+        )
+    else:
+        informal_log('Training CAV {} - {} alpha {}'.format(
+            concepts, bottleneck, cav_hparams['alpha']), log_path, timestamp=True)
+        cav_instance.train(
+            acts={c: acts[c] for c in concepts},
+            save_linear_model=save_linear_model)
     
     return cav_instance

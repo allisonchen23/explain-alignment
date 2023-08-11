@@ -9,5 +9,5 @@
 #SBATCH -e temp/%j_%x_err.txt         # send stderr to errfile
 #SBATCH -t 72:00:00           # time requested in hour:minute:second
 
-python src/train.py \
---config configs/repeated_trials/debug_cifar_pixel_NA.json \
+python src/save_cavs.py \
+--n_attributes 615
