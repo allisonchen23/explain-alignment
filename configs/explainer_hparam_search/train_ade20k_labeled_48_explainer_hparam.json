@@ -1,0 +1,64 @@
+{
+    "name": "scene_annotated_ADE20K_labeled_48_hparam",
+    "n_gpu": 1,
+    "method": "train",
+    "arch": {
+        "type": "LinearLayers",
+        "args": {
+            "n_in_features": 48,
+            "n_classes": 16,
+            "n_hidden_features": [],
+            "bias": true,
+            "activation": "relu"
+        }
+    },
+    "dataset": {
+        "type": "KDDataset",
+        "args": {
+            "input_features_path": "data/explainer_inputs/ade20k/concepts/labeled/scene_annotated/dense_48.pth",
+            "labels_path": "saved/places_model_ade20k_scene_labeled_features/0810_104502/outputs_predictions.pth",
+            "out_type": "probabilities"
+        }
+    },
+    "data_loader": {
+        "args": {
+            "batch_size": 256,
+            "num_workers": 8
+        }
+    },
+    "optimizer": {
+        "type": "SGD",
+        "args": {
+            "lr": 0.01,
+            "weight_decay": 0,
+            "momentum": 0
+        }
+    },
+    "loss": "cross_entropy",
+    "metrics": [
+        "accuracy",
+        "RMSE",
+        "per_class_accuracy",
+        "precision",
+        "recall",
+        "f1",
+        "predicted_class_distribution"
+    ],
+    "lr_scheduler": {
+        "type": "StepLR",
+        "args": {
+            "step_size": 101,
+            "gamma": 0.5
+        }
+    },
+    "trainer": {
+        "epochs": 150,
+        "save_dir": "saved/saved_explainers/scene_annotated",
+        "save_period": 1,
+        "verbosity": 2,
+        "monitor": "max val_accuracy",
+        "early_stop": 20,
+        "save_val_results": true,
+        "tensorboard": true
+    }
+}
