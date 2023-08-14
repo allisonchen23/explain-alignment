@@ -34,6 +34,7 @@ def run_hparam_search(config_json,
                       config_path,
                       learning_rates,
                       weight_decays,
+                      momentums,
                       train_script_path,
                       debug=False,
                     #   print_timestamp=True,
@@ -54,7 +55,8 @@ def run_hparam_search(config_json,
         },
         'parameters': {
             'lr': {'values': learning_rates},
-            'wd': {'values': weight_decays}
+            'wd': {'values': weight_decays},
+            'momentum': {'values': momentums}
         },
         'command': [
             'python',
@@ -83,6 +85,8 @@ if __name__ == "__main__":
         default=[1e-4, 1e-3, 5e-2, 1e-2, 5e-1, 1e-1], help='Space delimited list of learning rates')
     parser.add_argument('--weight_decays', '--wd', type=float, nargs="+",
         default=[0, 1e-1, 1e-2, 1e-3], help="Space delimited list of weight decays")
+    parser.add_argument('--momentums', type=float, nargs='+',
+        default=[0, 0.5, 0.8, 0.9, 0.99], help="Space delimited list of momentums")
     parser.add_argument('--build_save_dir', default=False, action='store_true')
     parser.add_argument('--debug', default=False, action='store_true')
 
@@ -91,6 +95,7 @@ if __name__ == "__main__":
     if args.debug:
         args.learning_rates = [1e-3]
         args.weight_decays = [0]
+        args.momentums = [0, 0.99]
 
     config_json = read_json(args.config)
 
@@ -100,5 +105,6 @@ if __name__ == "__main__":
         train_script_path=args.train_script_path,
         learning_rates=args.learning_rates,
         weight_decays=args.weight_decays,
+        momentums=args.momentums,
         debug=args.debug
     )

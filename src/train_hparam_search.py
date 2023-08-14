@@ -27,6 +27,8 @@ def main(config_json, trial_id=None, train_data_loader=None, val_data_loader=Non
             config_json['optimizer']['args']['lr'] = wandb_config.lr
         if 'wd' in wandb_config:
             config_json['optimizer']['args']['weight_decay'] = wandb_config.wd
+        if 'momentum' in wandb_config:
+            config_json['optimizer']['args']['momentum'] = wandb_config.momentum
         run_id = build_run_id(config_json)
         if trial_id is not None:
             run_id = os.path.join(run_id, trial_id)
@@ -87,10 +89,14 @@ def main(config_json, trial_id=None, train_data_loader=None, val_data_loader=Non
                 val_dataset = config.init_obj('dataset', module_data, split='val')
             except:
                 val_dataset = config.init_obj('dataset', module_data, split='test')
-            train_split = len(train_dataset) / (len(train_dataset) + len(val_dataset))
-            # logger.info("Dataset path(s): \n\t{}\n\t{}".format(
-            #     train_dataset.input_features_path,
-            #     train_dataset.labels_path))
+
+            # Try to get test dataset
+            try: 
+                test_dataset = config.init_obj('dataset', module_data, split='test')
+                logger.info("Loaded test dataset with {} samples".format(len(test_dataset)))
+            except:
+                test_dataset = None
+                logger.info("No test dataset to load")
         else:
             raise ValueError("Dataset type '{}' not supported".format(config.config['dataset']['type']))
         train_data_loader = torch.utils.data.DataLoader(
@@ -104,11 +110,33 @@ def main(config_json, trial_id=None, train_data_loader=None, val_data_loader=Non
             **data_loader_args
         )
 
-        logger.info("Created train ({} images) and val ({} images) datasets with {}/{} split.".format(
+        if test_dataset is None:
+            test_data_loader = None
+        else:
+            test_data_loader = torch.utils.data.DataLoader(
+                test_dataset,
+                shuffle=False,
+                **data_loader_args
+            )
+
+        # Dataset logging
+        if test_data_loader is None:
+            train_split = len(train_dataset) / (len(train_dataset) + len(val_dataset))
+            logger.info("Created train ({} images) and val ({} images) datasets with {}/{} split.".format(
+                    len(train_dataset),
+                    len(val_dataset),
+                    train_split,
+                    1 - train_split,
+                ))
+        else:
+            n_total_images = len(train_dataset) + len(val_dataset) + len(test_dataset)
+            logger.info("Created train ({} images), val ({} images), and test ({} images) dataloaders with {:.2f}/{:.2f}/{:.2f} split.".format(
                 len(train_dataset),
                 len(val_dataset),
-                train_split,
-                1 - train_split,
+                len(test_dataset),
+                len(train_dataset) / n_total_images,
+                len(val_dataset) / n_total_images,
+                len(test_dataset) / n_total_images
             ))
 
     # build model architecture, then print to console
@@ -162,8 +190,21 @@ def main(config_json, trial_id=None, train_data_loader=None, val_data_loader=Non
             loss_fn=criterion,
             output_save_path=val_outputs_save_path,
             log_save_path=val_metric_save_path)
-        print("Saving validation results to {}".format(os.path.dirname(val_metric_save_path)))
+        logger.info("Saving validation results to {}".format(os.path.dirname(val_metric_save_path)))
     
+    if test_data_loader is not None:
+        test_metrics_save_path = os.path.join(os.path.dirname(config.save_dir), 'test_metrics.pth')
+        test_outputs_save_path = os.path.join(os.path.dirname(config.save_dir), 'test_outputs.pth')
+        predict(
+            data_loader=test_data_loader,
+            model=model,
+            metric_fns=metrics,
+            device=device,
+            loss_fn=criterion,
+            output_save_path=test_outputs_save_path,
+            log_save_path=test_metrics_save_path
+        )
+        logger.info("Saving test predictions and results to {}".format(os.path.dirname(test_outputs_save_path)))
     return model
 
 # def build_save_dir(config_json, path_prefix='data/explainer_inputs'):
