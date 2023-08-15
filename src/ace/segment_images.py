@@ -210,20 +210,47 @@ class ImageSegmenter(object):
 
             torch.save(n_patches_dict, n_patches_dictionary_path)
 
+    def verify(self):
+        verify_log_path = os.path.join(self.save_dir, 'verification_log.txt')
+        dictionary_paths = [os.path.join(self.dictionary_dir, dict_name) for dict_name in sorted(os.listdir(self.dictionary_dir))]
+        master_dictionary = {}
 
-
-
-
-            # Create directories
-
-            # Call ace._return_superpixels() (actually I think I moved it into ace_helpers.py)
+        # Combine dictionaries into 1 master dictionary
+        for dictionary_path in dictionary_paths:
+            n_patches_dict = torch.load(dictionary_path)
+            master_dictionary.update(n_patches_dict)
+            # for path, n_patches in n_patches_dict.items():
+            #     if path not in master_dictionary:
+            #         master_dictionary[path] = n_patches
+            #     else: 
+            #         if n_patches != master_dictionary[path]:
+            #             informal_log("Discrepancy with segmentations at {}. Received {} and {}".format(
+            #                 path, n_patches, master_dictionary[path]
+            #             ), verify_log_path)
         
-        # for src, segmentation_save_dir:
-            # if segmentation_save_dir exists:
-                # continue 
-            # create patch dir and superpixel dir
-            # call ace._return_superpixels()
-        # pass
+        # Check number of paths in dictionary is equal to number of directories in 'segmentations'
+        segmentation_save_dir = os.path.join(self.save_dir, 'segmentations')
+        segmentation_dirs = [os.path.join(segmentation_save_dir, image_id) \
+                              for image_id in os.listdir(segmentation_save_dir)]
+        assert len(segmentation_dirs) == len(master_dictionary)
+        
+        # For each segmentation directory, check number of patches is as expected
+        for segmentation_dir in tqdm(segmentation_dirs):
+            n_patches = master_dictionary[segmentation_dir]
+            superpixel_dir = os.path.join(segmentation_dir, 'superpixels')
+            patches_dir = os.path.join(segmentation_dir, 'patches')
+            if len(os.listdir(superpixel_dir)) != n_patches:
+                informal_log("{},S,expected:{},found:{}".format(
+                    segmentation_dir,n_patches,len(os.listdir(superpixel_dir))
+                ), verify_log_path, timestamp=False)
+            if len(os.listdir(patches_dir)) != n_patches:
+                informal_log("{},P,expected:{},found:{}".format(
+                    segmentation_dir,n_patches,len(os.listdir(patches_dir))
+                ), verify_log_path, timestamp=False)
+
+        return
+
+                        
 
 if __name__ == "__main__":
     parser =argparse.ArgumentParser()
@@ -238,7 +265,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # check valid mode
-    modes_available = ['preprocess', 'main']
+    modes_available = ['preprocess', 'main', 'verify']
     if args.mode not in modes_available:
         raise ValueError("Mode '{}' not recognized. Please choose from {}".format(args.mode, modes_available))
     
@@ -270,3 +297,5 @@ if __name__ == "__main__":
             overwrite=args.overwrite,
             debug=args.debug
         )
+    elif args.mode == 'verify':
+        imseg.verify()
