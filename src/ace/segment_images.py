@@ -1,6 +1,9 @@
 import argparse
+from datetime import datetime
 import numpy as np
 import os, sys
+import shutil
+import time
 from tqdm import tqdm
 import torch
 import random
@@ -24,12 +27,11 @@ class ImageSegmenter(object):
         self.dataset_id = os.path.basename(image_labels_path).split('_imagelabels')[0]
 
         self.save_dir = os.path.join(save_dir, self.dataset_id)
-        ensure_dir(self.save_dir)
-
-        self.log_path = os.path.join(save_dir, 'log.txt')
+        
+        self.log_path = os.path.join(self.save_dir, 'log.txt')
 
         self.dictionary_dir = os.path.join(self.save_dir, 'n_patch_dictionaries')
-        ensure_dir(self.dictionary_dir)
+        
         self.src_image_paths = None
         self.dst_dirpaths = None
 
@@ -46,7 +48,27 @@ class ImageSegmenter(object):
         self.average_image_value = average_image_value
         self.image_shape = image_shape
 
+    def preprocess(self,
+                   splits=['train', 'val', 'test'],
+                   overwrite=False):
+        # Ensure directories by overwriting
+        if overwrite:
+            if os.path.isdir(self.save_dir):
+                shutil.rmtree(self.save_dir)
+            ensure_dir(self.save_dir)
+            if os.path.isdir(self.dictionary_dir):
+                shutil.rmtree(self.dictionary_dir)
+            ensure_dir(self.dictionary_dir)
+        # Don't overwrite, just ensure they exist
+        else:
+            ensure_dir(self.save_dir)
+            ensure_dir(self.dictionary_dir) 
 
+        print("Created directories {} and {}".format(self.save_dir, self.dictionary_dir))
+        self.get_image_paths(
+            splits=splits,
+            overwrite=overwrite)
+        
     def get_image_paths(self,
                         splits=['train', 'val', 'test'],
                         overwrite=False):
@@ -65,6 +87,7 @@ class ImageSegmenter(object):
             list[str] : list of all image paths
             list[str] : list of destination directories
         '''
+
         # Check directory/file existence
         image_paths_path = os.path.join(self.save_dir, '{}_image_paths.txt'.format(self.dataset_id))
         if os.path.exists(image_paths_path) and not overwrite:
@@ -85,10 +108,13 @@ class ImageSegmenter(object):
 
         # Create directories to save segmentations in
         segmentation_paths_path = os.path.join(self.save_dir, '{}_ace_segmentation_paths.txt'.format(self.dataset_id))
-        image_ids_path = os.path.join(self.save_dir, '{}_image_ids.txt')
+        image_ids_path = os.path.join(self.save_dir, '{}_image_ids.txt'.format(self.dataset_id))
         if os.path.exists(segmentation_paths_path) and os.path.exists(image_ids_path) \
             and not overwrite:
             dst_dirs = read_lists(segmentation_paths_path)
+            image_ids = read_lists(image_ids_path)
+            print("File exists at {}".format(segmentation_paths_path))
+            print("File exists at {}".format(image_ids_path))
         else:
             dst_dirs = []
             image_ids = []
@@ -98,7 +124,9 @@ class ImageSegmenter(object):
                 dst_dirs.append(segmentation_dir)
                 image_ids.append(image_id)
             write_lists(dst_dirs, segmentation_paths_path)
+            write_lists(image_ids, image_ids_path)
             print("Wrote {} destination segmentation directory paths to {}".format(len(dst_dirs), segmentation_paths_path))
+            print("Wrote {} image ids paths to {}".format(len(image_ids), image_ids_path))
         # self.dst_dirpaths = dst_dirs
         return image_paths, dst_dirs, image_ids
     
@@ -127,14 +155,14 @@ class ImageSegmenter(object):
         paths = list(zip(self.src_image_paths, self.dst_dirpaths, self.image_ids))
 
         if debug:
-            paths = paths[:100]
+            paths = paths[:10]
 
         random.shuffle(paths)
 
         for idx, (src_path, dst_dir, image_id) in enumerate(paths):
             
-            # if os.path.isdir(dst_dir) and not overwrite:
-            #     continue
+            if os.path.isdir(dst_dir) and not overwrite:
+                continue
             patches_save_dir = os.path.join(dst_dir, 'patches')
             superpixels_save_dir = os.path.join(dst_dir, 'superpixels')
 
@@ -170,8 +198,17 @@ class ImageSegmenter(object):
                 n_patches, dst_dir
             ))
 
+            informal_log("{},{}".format(dst_dir, n_patches), self.log_path, timestamp=False)
 
+            timestamp = datetime.now().strftime(r'%m%d_%H%M%S')
+            n_patches_dictionary_path = os.path.join(self.dictionary_dir, '{}.pth'.format(timestamp))
+            time.sleep(random.random())
+            while os.path.exists(n_patches_dictionary_path):
+                timestamp = datetime.now().strftime(r'%m%d_%H%M%S')
+                n_patches_dictionary_path = os.path.join(self.dictionary_dir, '{}.pth'.format(timestamp))
+                time.sleep(random.random())
 
+            torch.save(n_patches_dict, n_patches_dictionary_path)
 
 
 
@@ -186,7 +223,7 @@ class ImageSegmenter(object):
                 # continue 
             # create patch dir and superpixel dir
             # call ace._return_superpixels()
-        pass
+        # pass
 
 if __name__ == "__main__":
     parser =argparse.ArgumentParser()
@@ -197,6 +234,7 @@ if __name__ == "__main__":
     parser.add_argument('--splits', type=str, nargs='+', default=['train', 'val', 'test'],
                         help="Names of splits to segment images from. Default is ['train', 'val', 'test']")
     parser.add_argument('--overwrite', action='store_true', help='Boolean to overwrite data or not')
+    parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
 
     # check valid mode
@@ -229,5 +267,6 @@ if __name__ == "__main__":
     elif args.mode == 'main':
         imseg.segment_images(
             splits=args.splits,
-            overwrite=args.overwrite
+            overwrite=args.overwrite,
+            debug=args.debug
         )
