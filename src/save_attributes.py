@@ -106,8 +106,8 @@ if __name__ == "__main__":
 
     get_frequent_attributes(
         save_dir=save_dir,
-        imagelabels_path=imagelabels_path,
-        labels_path=labels_csv_path,
+        imagelabels_path=IMAGELABELS_PATH,
+        labels_path=LABELS_CSV_PATH,
         n_attributes=args.n_attributes,
         total_attributes=total_attributes
     )
