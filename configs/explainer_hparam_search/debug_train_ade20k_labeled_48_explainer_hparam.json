@@ -1,11 +1,11 @@
 {
-    "name": "ADE20K_dense_ace_images_800_concept_25_concept_explainer_hparam",
+    "name": "scene_annotated_ADE20K_labeled_48_hparam",
     "n_gpu": 1,
     "method": "train",
     "arch": {
         "type": "LinearLayers",
         "args": {
-            "n_in_features": 25,
+            "n_in_features": 48,
             "n_classes": 16,
             "n_hidden_features": [],
             "bias": true,
@@ -15,8 +15,8 @@
     "dataset": {
         "type": "KDDataset",
         "args": {
-            "input_features_path": "data/explainer_inputs/ade20k/concepts/ace/n_800-concept_25-min_20-max_40/splits_dense_one_hot_attributes.pth",
-            "labels_path": "saved/PlacesCategoryClassification/0510_102912/ADE20K_predictions/saga/outputs_predictions.pth",
+            "input_features_path": "data/explainer_inputs/ade20k/concepts/labeled/scene_annotated/dense_48_attributes.pth",
+            "labels_path": "saved/places_model_ade20k_scene_labeled_features/0810_104502/outputs_predictions.pth",
             "out_type": "probabilities"
         }
     },
@@ -30,7 +30,8 @@
         "type": "SGD",
         "args": {
             "lr": 0.01,
-            "weight_decay": 0
+            "weight_decay": 0,
+            "momentum": 0
         }
     },
     "loss": "cross_entropy",
@@ -51,8 +52,8 @@
         }
     },
     "trainer": {
-        "epochs": 150,
-        "save_dir": "saved/debug",
+        "epochs": 1,
+        "save_dir": "saved/debug/saved_explainers/",
         "save_period": 1,
         "verbosity": 2,
         "monitor": "max val_accuracy",
