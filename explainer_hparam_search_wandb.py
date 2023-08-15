@@ -42,7 +42,7 @@ def run_hparam_search(config_json,
     # if debug:
     #     config_json['trainer']['epochs'] = 1
     #     config_json['trainer']['save_dir'] = config_json['trainer']['save_dir'].replace('saved/', 'saved/debug/')
-
+    print(train_script_path)
     timestamp = str(datetime.now().strftime(r'%m%d_%H%M%S'))
     n_trials = len(learning_rates) * len(weight_decays)
     sweep_config = {
@@ -64,7 +64,8 @@ def run_hparam_search(config_json,
             '--config',
             config_path,
             '--trial_id',
-            str(timestamp)
+            str(timestamp),
+            '--hparam_search'
 
         ]
     }
@@ -72,10 +73,8 @@ def run_hparam_search(config_json,
         sweep_config, 
         project=config_json['name']
     )
-    print(sweep_id)
     for trial_idx in range(n_trials):
         wandb.agent('grad-student-descent/{}/{}'.format(config_json['name'], sweep_id))
-        # os.system('sbatch bash/start_sweep.sh {} {}'.format(sweep_id, config_json['name']))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
