@@ -161,23 +161,27 @@ def restore_and_test(model,
                     config,
                     trial_dir,
                     model_restore_path,
-                    val_dataloader,
+                    dataloader,
                     metric_fns,
                     device,
-                    loss_fn):
+                    loss_fn,
+                    output_save_path=None,
+                    metric_save_path=None):
 
-    output_save_path = os.path.join(trial_dir, "outputs_predictions.pth")
-    log_save_path = os.path.join(trial_dir, "val_metrics.pth")
+    if output_save_path is None:
+        output_save_path = os.path.join(trial_dir, "outputs_predictions.pth")
+    if metric_save_path is None:
+        metric_save_path = os.path.join(trial_dir, "metrics.pth")
 
     model.restore_model(model_restore_path)
 
     validation_data = predict(
-        data_loader=val_dataloader,
+        data_loader=dataloader,
         model=model,
         metric_fns=metric_fns,
         device=device,
         loss_fn=loss_fn,
         output_save_path=output_save_path,
-        log_save_path=log_save_path)
+        log_save_path=metric_save_path)
 
     return validation_data
