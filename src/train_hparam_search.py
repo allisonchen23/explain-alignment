@@ -207,58 +207,6 @@ def main(config_json, trial_id=None, train_data_loader=None, val_data_loader=Non
         logger.info("Saving test predictions and results to {}".format(os.path.dirname(test_outputs_save_path)))
     return model
 
-# def build_save_dir(config_json, path_prefix='data/explainer_inputs'):
-#     '''
-#     Following format from generating the explainer inputs, the new path should be:
-#         root / dataset_type / input_type / <more params> / explainer hidden layers
-#     '''
-#     save_root = config_json['trainer']['save_dir']
-#     input_dataset_path = config_json['dataset']['args']['input_features_path']
-#     # Obtain relative path from the path prefix (typically 'data/explainer_inputs')
-#     relative_path = os.path.relpath(path=input_dataset_path, start=path_prefix)
-#     # Remove filename from path
-#     save_local_dir = os.path.dirname(relative_path)
-#     # input_dataset_name = os.path.basename(input_dataset_path).split("explainer_inputs.pth")[0]
-#     # save_local_dir = input_dataset_name.replace('_', '/')
-
-#     # Obtain number of hidden features
-#     hidden_layers = config_json['arch']['args']['n_hidden_features']
-#     if len(hidden_layers) == 0:
-#         hidden_string = 'hidden_NA'
-#     else:
-#         hidden_string = 'hidden'
-#         for h in hidden_layers:
-#             hidden_string += '_{}'.format(h)
-
-#     save_dir = os.path.join(save_root, save_local_dir, hidden_string)
-#     return save_dir
-
-def build_run_id(config_json, path_prefix='data/explainer_inputs'):
-    '''
-    Following format from generating the explainer inputs, the new path should be:
-        root / dataset_type / input_type / <more params> / explainer hidden layers
-    '''
-    # save_root = config_json['trainer']['save_dir']
-    input_dataset_path = config_json['dataset']['args']['input_features_path']
-    # Obtain relative path from the path prefix (typically 'data/explainer_inputs')
-    relative_path = os.path.relpath(path=input_dataset_path, start=path_prefix)
-    # Remove filename from path
-    save_local_dir = os.path.dirname(relative_path)
-    # input_dataset_name = os.path.basename(input_dataset_path).split("explainer_inputs.pth")[0]
-    # save_local_dir = input_dataset_name.replace('_', '/')
-
-    # Obtain number of hidden features
-    hidden_layers = config_json['arch']['args']['n_hidden_features']
-    if len(hidden_layers) == 0:
-        run_id = 'hidden_NA'
-    else:
-        run_id = 'hidden'
-        for h in hidden_layers:
-            run_id += '_{}'.format(h)
-
-    run_id = os.path.join(save_local_dir, run_id)
-    return run_id
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PyTorch Template')
     parser.add_argument('-c', '--config', default=None, type=str,
