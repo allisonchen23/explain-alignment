@@ -12,7 +12,7 @@
 CONFIG_PATH="configs/explainer_hparam_search/$1.json"
 python explainer_hparam_search_wandb.py \
 --config $CONFIG_PATH \
---train_script_path src/train_hparam_search.py \
+--train_script_path src/train_unify.py \
 --learning_rates 1e-4 1e-3 \
 --weight_decays 0 1e-1 \
 --build_save_dir

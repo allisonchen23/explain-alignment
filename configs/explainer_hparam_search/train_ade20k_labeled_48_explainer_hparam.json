@@ -15,7 +15,7 @@
     "dataset": {
         "type": "KDDataset",
         "args": {
-            "input_features_path": "data/explainer_inputs/ade20k/concepts/labeled/scene_annotated/dense_48.pth",
+            "input_features_path": "data/explainer_inputs/ade20k/concepts/labeled/scene_annotated/dense_48_attributes.pth",
             "labels_path": "saved/places_model_ade20k_scene_labeled_features/0810_104502/outputs_predictions.pth",
             "out_type": "probabilities"
         }
