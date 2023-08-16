@@ -174,16 +174,6 @@ class ConceptDiscovery(object):
             save_dir = os.path.join(self.checkpoint_dir, 'saved')
             ensure_dir(save_dir)
 
-        # data_save_path = os.path.join(save_dir, 'features_index_numbers.pth')
-        # if not overwrite and os.path.exists(data_save_path) and not save_image_patches:
-        #     restore_data = torch.load(data_save_path)
-        #     self.features = restore_data['features']
-        #     self.image_numbers = restore_data['image_numbers']
-        #     self.patch_numbers = restore_data['patch_numbers']
-        #     self.image_start_idxs = restore_data['image_start_idxs'
-        #     ]
-        #     return
-
         n_images = len(discovery_images)
 
         # Store all features, image_numbers, and patch_numbers
@@ -217,9 +207,13 @@ class ConceptDiscovery(object):
                 cur_image_numbers = np.array([image_idx for i in range(len(image_superpixels))])
                 cur_patch_numbers = np.array([i for i in range(len(image_superpixels))])
 
-                # Call get_features
-                superpixel_features = self.get_features(
-                    dataset=image_superpixels
+                # Call get_features (defined in ace_helpers.py)
+                superpixel_features = get_features(
+                    dataset=image_superpixels,
+                    features_model=self.features_model,
+                    device=self.device,
+                    batch_size=self.batch_size,
+                    channel_mean=self.channel_mean
                 )
 
                 features.append(superpixel_features)
@@ -302,147 +296,35 @@ class ConceptDiscovery(object):
             save_paths.append(save_path)
         return save_paths
 
-    # def _return_superpixels(self, index_img, method='slic',
-    #           param_dict=None):
-    #     """Returns all patches for one image.
+    # def get_features(self,
+    #                  dataset):
+    #     features = []
 
-    #     Given an image, calculates superpixels for each of the parameter lists in
-    #     param_dict and returns a set of unique superpixels by
-    #     removing duplicates. If two patches have Jaccard similarity more than 0.5,
-    #     they are concidered duplicates.
+    #     self.features_model.eval()
+    #     features_model = self.features_model.to(self.device)
 
-    #     Args:
-    #     img: The input image
-    #     method: superpixel method, one of slic, watershed, quichsift, or
-    #     felzenszwalb
-    #     param_dict: Contains parameters of the superpixel method used in the form
-    #     of {'param1':[a,b,...], 'param2':[z,y,x,...], ...}. For instance
-    #     {'n_segments':[15,50,80], 'compactness':[10,10,10]} for slic
-    #     method.
-    #     Raises:
-    #     ValueError: if the segementation method is invaled.
+    #     # Forward data through model in batches
+    #     n_batches = int(dataset.shape[0] / self.batch_size) + 1
+    #     with torch.no_grad():
+    #         for batch_idx in tqdm(range(n_batches)):
+    #             batch = dataset[batch_idx * self.batch_size : (batch_idx + 1) * self.batch_size]
+    #             batch = torch.tensor(batch, dtype=torch.float)
+    #             batch = torch.permute(batch, (0, 3, 1, 2))
+    #             batch = batch.to(self.device)
 
-    #     Returns:
-    #         (int, np.array, np.array)
-    #             int : image index
-    #             np.array : superpixel patches
-    #             np.array : normal sized patches
-    #     """
-    #     # Passing in the index allows to use unordered maps
-    #     idx, img = index_img
+    #             batch_features = features_model(batch).cpu().numpy()
+    #             features.append(batch_features)
+    #     features = np.concatenate(features, axis=0)
 
-    #     if param_dict is None:
-    #         param_dict = {}
-    #     if method == 'slic':
-    #         n_segmentss = param_dict.pop('n_segments', [15, 50, 80])
-    #         n_params = len(n_segmentss)
-    #         compactnesses = param_dict.pop('compactness', [20] * n_params)
-    #         sigmas = param_dict.pop('sigma', [1.] * n_params)
-    #     elif method == 'watershed':
-    #         markerss = param_dict.pop('marker', [15, 50, 80])
-    #         n_params = len(markerss)
-    #         compactnesses = param_dict.pop('compactness', [0.] * n_params)
-    #     elif method == 'quickshift':
-    #         max_dists = param_dict.pop('max_dist', [20, 15, 10])
-    #         n_params = len(max_dists)
-    #         ratios = param_dict.pop('ratio', [1.0] * n_params)
-    #         kernel_sizes = param_dict.pop('kernel_size', [10] * n_params)
-    #     elif method == 'felzenszwalb':
-    #         scales = param_dict.pop('scale', [1200, 500, 250])
-    #         n_params = len(scales)
-    #         sigmas = param_dict.pop('sigma', [0.8] * n_params)
-    #         min_sizes = param_dict.pop('min_size', [20] * n_params)
+    #     # Flatten features to n_samples x feature_dim array either by taking mean across channels
+    #     # Or expanding channel to 1D array
+    #     if self.channel_mean and len(features.shape) > 3:
+    #         features = np.mean(features, axis=(2, 3))
     #     else:
-    #         raise ValueError('Invalid superpixel method {}!')
+    #         features = np.reshape(features, [features.shape[0], -1])
+    #     assert features.shape[0] == dataset.shape[0]
 
-    #     unique_masks = []
-    #     for i in range(n_params):
-    #         param_masks = []
-    #         if method == 'slic':
-    #             segments = segmentation.slic(
-    #                 img, n_segments=n_segmentss[i], compactness=compactnesses[i],
-    #                 sigma=sigmas[i])
-    #         elif method == 'watershed':
-    #             segments = segmentation.watershed(
-    #                 img, markers=markerss[i], compactness=compactnesses[i])
-    #         elif method == 'quickshift':
-    #             segments = segmentation.quickshift(
-    #                 img, kernel_size=kernel_sizes[i], max_dist=max_dists[i],
-    #                 ratio=ratios[i])
-    #         elif method == 'felzenszwalb':
-    #             segments = segmentation.felzenszwalb(
-    #                 img, scale=scales[i], sigma=sigmas[i], min_size=min_sizes[i])
-    #         for s in range(segments.max()):
-    #             mask = (segments == s).astype(float)
-    #             if np.mean(mask) > 0.001:
-    #                 unique = True
-    #                 for seen_mask in unique_masks:
-    #                     jaccard = np.sum(seen_mask * mask) / np.sum((seen_mask + mask) > 0)
-    #                     if jaccard > 0.5:
-    #                         unique = False
-    #                         break
-    #                 if unique:
-    #                     param_masks.append(mask)
-    #         unique_masks.extend(param_masks)
-
-    #     superpixels, patches = [], []
-    #     while unique_masks:
-    #         superpixel, patch = self._extract_patch(img, unique_masks.pop())
-    #         superpixels.append(superpixel)
-    #         patches.append(patch)
-    #     return idx, superpixels, patches
-
-    # def _extract_patch(self, image, mask):
-    #     """Extracts a patch out of an image.
-
-    #     Args:
-    #     image: The original image
-    #     mask: The binary mask of the patch area
-
-    #     Returns:
-    #     image_resized: The resized patch such that its boundaries touches the
-    #     image boundaries
-    #     patch: The original patch. Rest of the image is padded with average value
-    #     """
-    #     mask_expanded = np.expand_dims(mask, -1)
-    #     patch = (mask_expanded * image + (
-    #         1 - mask_expanded) * float(self.average_image_value) / 255)
-    #     ones = np.where(mask == 1)
-    #     h1, h2, w1, w2 = ones[0].min(), ones[0].max(), ones[1].min(), ones[1].max()
-    #     image = Image.fromarray((patch[h1:h2, w1:w2] * 255).astype(np.uint8))
-    #     image_resized = np.array(image.resize(self.image_shape,
-    #                                           Image.BICUBIC)).astype(float) / 255
-    #     return image_resized, patch
-
-    def get_features(self,
-                     dataset):
-        features = []
-
-        self.features_model.eval()
-        features_model = self.features_model.to(self.device)
-
-        # Forward data through model in batches
-        n_batches = int(dataset.shape[0] / self.batch_size) + 1
-        with torch.no_grad():
-            for batch_idx in tqdm(range(n_batches)):
-                batch = dataset[batch_idx * self.batch_size : (batch_idx + 1) * self.batch_size]
-                batch = torch.tensor(batch, dtype=torch.float)
-                batch = torch.permute(batch, (0, 3, 1, 2))
-                batch = batch.to(self.device)
-
-                batch_features = features_model(batch).cpu().numpy()
-                features.append(batch_features)
-        features = np.concatenate(features, axis=0)
-
-        # Flatten features to n_samples x feature_dim array either by taking mean across channels
-        # Or expanding channel to 1D array
-        if self.channel_mean and len(features.shape) > 3:
-            features = np.mean(features, axis=(2, 3))
-        else:
-            features = np.reshape(features, [features.shape[0], -1])
-        assert features.shape[0] == dataset.shape[0]
-
-        return features
+    #     return features
 
 
     def discover_concepts(self,
