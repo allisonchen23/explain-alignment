@@ -11,7 +11,7 @@ import random
 sys.path.insert(0, 'src')
 # sys.path.insert(0, 'src/ace')
 from utils.utils import ensure_dir, read_lists, write_lists, informal_log, load_image, save_image
-from ace.ace_helpers import return_superpixels, load_features_model
+from ace.ace_helpers import return_superpixels, load_features_model, load_images_from_files, get_features
 
 class ImageSegmenter(object):
     def __init__(self,
@@ -212,15 +212,38 @@ class ImageSegmenter(object):
                       n_classes,
                       device,
                       model_checkpoint_path,
+                      batch_size,
+                      channel_mean,
                       overwrite=False):
-        
+        log_path = os.path.join(self.save_dir, 'features_log.txt')
+
         # Store paths to directories
         self.src_image_paths, self.dst_dirpaths, self.image_ids = self.get_image_paths(
             splits=splits,
             overwrite=False
         )
 
-        features = []
+        features_save_path = os.path.join(self.save_dir, 'superpixel_features.pth')
+        # Check if file already exists
+        if os.path.exists(features_save_path) and not overwrite:
+            superpixel_features = torch.load(features_save_path)
+            is_complete = True
+            # Check that all images are in the dictionary
+            for image_id in self.image_ids:
+                if image_id not in superpixel_features:
+                    is_complete = False
+            if is_complete:
+                return superpixel_features
+
+        # Load model
+        _, feature_model = load_features_model(
+            arch=model_arch,
+            n_classes=n_classes,
+            device=device,
+            checkpoint_path=model_checkpoint_path
+        )
+
+        features = {}
         for image_idx, (dst_dir, image_id) in enumerate(zip(self.dst_dirpaths, self.image_ids)):
             superpixel_dir = os.path.join(dst_dir, 'superpixels')
             superpixel_paths = [os.path.join(superpixel_dir, patch_name) for patch_name in os.listdir(superpixel_dir)]
@@ -230,14 +253,33 @@ class ImageSegmenter(object):
             patch_ids = np.array(patch_ids)[sort_idxs]
             superpixel_paths = np.array(superpixel_paths)[sort_idxs]
             
-            print(superpixel_paths[0])
+            # superpixel_patches : np.array[N x H x W x C]
+            superpixel_patches = load_images_from_files(
+                filenames=superpixel_paths,
+                max_imgs=len(superpixel_paths),
+                return_filenames=False,
+                do_shuffle=False,
+                run_parallel=False,
+                shape=self.image_shape
+            )
 
-        model, feature_model = load_features_model(
-            arch=model_arch,
-            n_classes=n_classes,
-            device=device,
-            checkpoint_path=model_checkpoint_path
-        )
+            superpixel_features = get_features(
+                dataset=superpixel_patches,
+                features_model=feature_model,
+                device=device,
+                batch_size=batch_size,
+                channel_mean=channel_mean
+            )
+            if image_idx % 500 == 0:
+                informal_log("Calculated superpixel features for {}/{} images".format(
+                    image_idx + 1, len(self.image_ids)
+                ), log_path)
+            features[image_id] = superpixel_features
+        
+        torch.save(superpixel_features, features_save_path)
+        informal_log("Saved {} superpixel features to {}".format(len(superpixel_features), features_save_path))
+
+        return superpixel_features
 
     def verify(self, remove_corrupt=True):
         verify_log_path = os.path.join(self.save_dir, 'verification_log.txt')
@@ -320,16 +362,13 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
 
-    # Args for features model. I am lazy
-    model_checkpoint_path = os.path.join('checkpoints/resnet18_places365.pth')
-    model_arch = 'resnet18'
-    n_classes = 365
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
     # check valid mode
     modes_available = ['preprocess', 'main', 'verify', 'features']
     if args.mode not in modes_available:
         raise ValueError("Mode '{}' not recognized. Please choose from {}".format(args.mode, modes_available))
+    
+
+    
     
     # Arguments for superpixel
     superpixel_method = 'slic'
@@ -339,6 +378,14 @@ if __name__ == "__main__":
     }
     average_image_value = np.mean([0.485, 0.456, 0.406]) * 255 # ImageNet values
     image_shape = (224, 224) # Shape of ADE20K images
+
+    # Args for features model. I am lazy
+    model_checkpoint_path = os.path.join('checkpoints/resnet18_places365.pth')
+    model_arch = 'resnet18'
+    n_classes = 365
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    batch_size = 256
+    channel_mean = True
 
     imseg = ImageSegmenter(
         save_dir=args.save_dir,
@@ -368,4 +415,6 @@ if __name__ == "__main__":
             n_classes=n_classes,
             device=device,
             model_checkpoint_path=model_checkpoint_path,
+            batch_size=batch_size,
+            channel_mean=channel_mean
         )
