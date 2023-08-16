@@ -21,40 +21,6 @@ from concept_presence import ConceptPresence
 
 import argparse
 
-def load_features_model(arch,
-                  n_classes,
-                  device,
-                  checkpoint_path=None):
-    '''
-    Build model from torchvision and load checkpoint. Return model and features model (cut off last layer)
-
-    Arg(s):
-        arch : str
-            model architecture as specific in torchvision.models.__dict__
-        n_classes : int
-            number of classes to predict
-        checkpoint_path : str or None
-            path to restore model weights from
-        device : torch.device
-            Device to load model on
-
-    Returns:
-        model, features_model
-            model : restored model
-            features_model : model without the final classification layer
-    '''
-    model = torchvision.models.__dict__[arch](num_classes=n_classes)
-    if checkpoint_path is not None:
-        checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
-        # Get rid of 'module' from the keys which is due to multi-GPU training
-        state_dict = {str.replace(k, 'module.', ''): v for k, v in checkpoint['state_dict'].items()}
-        model.load_state_dict(state_dict)
-    model.eval()
-    features_model = torch.nn.Sequential(*list(model.children())[:-1])
-    features_model.eval()
-
-    return model, features_model
-
 def main(n_samples,
          n_concepts,
          min_patches, 

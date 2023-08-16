@@ -126,7 +126,7 @@ def load_images_from_files(filenames, max_imgs=500, return_filenames=False,
     shape: desired shape of the image
     n_workers: number of workers in parallelization.
   Returns:
-    image arrays and succeeded filenames if return_filenames=True.
+    np.array : image arrays and succeeded filenames if return_filenames=True.
   """
   imgs = []
   # First shuffle a copy of the filenames.
