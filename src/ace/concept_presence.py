@@ -36,7 +36,8 @@ class ConceptPresence():
                         }
                     }
                 }
-            features : list[np.array]
+            features : dict[str : list[np.array]]
+                str is splits
                 features of different splits
                 np.array : N x D dimensions
             checkpoint_dir : str

@@ -6,6 +6,8 @@ import os
 from matplotlib import pyplot as plt
 import matplotlib.gridspec as gridspec
 import tcav.model as model
+import torchvision
+import torch
 import numpy as np
 from PIL import Image
 import skimage.segmentation as segmentation
@@ -16,6 +18,40 @@ import tensorflow as tf
 from functools import partial
 from tqdm import tqdm
 
+def load_features_model(arch,
+                  n_classes,
+                  device,
+                  checkpoint_path=None):
+    '''
+    Build model from torchvision and load checkpoint. Return model and features model (cut off last layer)
+
+    Arg(s):
+        arch : str
+            model architecture as specific in torchvision.models.__dict__
+        n_classes : int
+            number of classes to predict
+        checkpoint_path : str or None
+            path to restore model weights from
+        device : torch.device
+            Device to load model on
+
+    Returns:
+        model, features_model
+            model : restored model
+            features_model : model without the final classification layer
+    '''
+    model = torchvision.models.__dict__[arch](num_classes=n_classes)
+    if checkpoint_path is not None:
+        checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
+        # Get rid of 'module' from the keys which is due to multi-GPU training
+        state_dict = {str.replace(k, 'module.', ''): v for k, v in checkpoint['state_dict'].items()}
+        model.load_state_dict(state_dict)
+    model.eval()
+    features_model = torch.nn.Sequential(*list(model.children())[:-1])
+    features_model.eval()
+
+    return model, features_model
+    
 def make_model(sess, model_to_run, model_path, 
                labels_path, randomize=False,):
   """Make an instance of a model.
@@ -90,7 +126,7 @@ def load_images_from_files(filenames, max_imgs=500, return_filenames=False,
     shape: desired shape of the image
     n_workers: number of workers in parallelization.
   Returns:
-    image arrays and succeeded filenames if return_filenames=True.
+    np.array : image arrays and succeeded filenames if return_filenames=True.
   """
   imgs = []
   # First shuffle a copy of the filenames.
@@ -265,6 +301,39 @@ def return_superpixels(index_img,
             superpixels.append(superpixel)
             patches.append(patch)
         return idx, superpixels, patches
+
+def get_features(dataset,
+                 features_model,
+                 device,
+                 batch_size,
+                 channel_mean):
+        features = []
+
+        features_model.eval()
+        features_model = features_model.to(device)
+
+        # Forward data through model in batches
+        n_batches = int(dataset.shape[0] / batch_size) + 1
+        with torch.no_grad():
+            for batch_idx in tqdm(range(n_batches)):
+                batch = dataset[batch_idx * batch_size : (batch_idx + 1) * batch_size]
+                batch = torch.tensor(batch, dtype=torch.float)
+                batch = torch.permute(batch, (0, 3, 1, 2))
+                batch = batch.to(device)
+
+                batch_features = features_model(batch).cpu().numpy()
+                features.append(batch_features)
+        features = np.concatenate(features, axis=0)
+
+        # Flatten features to n_samples x feature_dim array either by taking mean across channels
+        # Or expanding channel to 1D array
+        if channel_mean and len(features.shape) > 3:
+            features = np.mean(features, axis=(2, 3))
+        else:
+            features = np.reshape(features, [features.shape[0], -1])
+        assert features.shape[0] == dataset.shape[0]
+
+        return features
 
 def flat_profile(cd, images, bottlenecks=None):
   """Returns concept profile of given images.
