@@ -11,7 +11,7 @@ import random
 sys.path.insert(0, 'src')
 # sys.path.insert(0, 'src/ace')
 from utils.utils import ensure_dir, read_lists, write_lists, informal_log, load_image, save_image
-from ace.ace_helpers import return_superpixels
+from ace.ace_helpers import return_superpixels, load_features_model
 
 class ImageSegmenter(object):
     def __init__(self,
@@ -132,13 +132,13 @@ class ImageSegmenter(object):
     
     
     def segment_images(self,
-            # image_labels_path,
-            # save_dir,
             splits=['train', 'val', 'test'],
             overwrite=False,
             debug=False):
-        # segment images
-
+        '''
+        Function that can be called in parallel to segment images and save patches and superpixels.
+        Saves number of patches per image in a dictionary in self.save_dir/self.dataset_id/n_patch_dictionaries
+        '''
         # Take in src filepaths (call get_image_paths)
         self.src_image_paths, self.dst_dirpaths, self.image_ids = self.get_image_paths(
             splits=splits,
@@ -146,10 +146,6 @@ class ImageSegmenter(object):
         )
         
         # Dictionary for storing # of patches for each image
-        # n_patches_dict_path = os.path.join(self.save_dir, 'n_patches_dictionary.pth')
-        # if os.path.exists(n_patches_dict_path):
-        #     n_patches_dict = torch.load(n_patches_dict_path)
-        # else:
         n_patches_dict = {}
 
         paths = list(zip(self.src_image_paths, self.dst_dirpaths, self.image_ids))
@@ -200,53 +196,113 @@ class ImageSegmenter(object):
 
             informal_log("{},{}".format(dst_dir, n_patches), self.log_path, timestamp=False)
 
+        timestamp = datetime.now().strftime(r'%m%d_%H%M%S')
+        n_patches_dictionary_path = os.path.join(self.dictionary_dir, '{}.pth'.format(timestamp))
+        time.sleep(random.random())
+        while os.path.exists(n_patches_dictionary_path):
             timestamp = datetime.now().strftime(r'%m%d_%H%M%S')
             n_patches_dictionary_path = os.path.join(self.dictionary_dir, '{}.pth'.format(timestamp))
             time.sleep(random.random())
-            while os.path.exists(n_patches_dictionary_path):
-                timestamp = datetime.now().strftime(r'%m%d_%H%M%S')
-                n_patches_dictionary_path = os.path.join(self.dictionary_dir, '{}.pth'.format(timestamp))
-                time.sleep(random.random())
 
-            torch.save(n_patches_dict, n_patches_dictionary_path)
+        torch.save(n_patches_dict, n_patches_dictionary_path)
 
-    def verify(self):
+    def save_features(self,
+                      splits,
+                      model_arch,
+                      n_classes,
+                      device,
+                      model_checkpoint_path,
+                      overwrite=False):
+        
+        # Store paths to directories
+        self.src_image_paths, self.dst_dirpaths, self.image_ids = self.get_image_paths(
+            splits=splits,
+            overwrite=False
+        )
+
+        features = []
+        for image_idx, (dst_dir, image_id) in enumerate(zip(self.dst_dirpaths, self.image_ids)):
+            superpixel_dir = os.path.join(dst_dir, 'superpixels')
+            superpixel_paths = [os.path.join(superpixel_dir, patch_name) for patch_name in os.listdir(superpixel_dir)]
+            patch_ids = [int(os.path.basename(superpixel_path).split('patch_')[1].split('.png')[0]) \
+                for superpixel_path in superpixel_paths]
+            sort_idxs = np.argsort(patch_ids)
+            patch_ids = np.array(patch_ids)[sort_idxs]
+            superpixel_paths = np.array(superpixel_paths)[sort_idxs]
+            
+            print(superpixel_paths[0])
+
+        model, feature_model = load_features_model(
+            arch=model_arch,
+            n_classes=n_classes,
+            device=device,
+            checkpoint_path=model_checkpoint_path
+        )
+
+    def verify(self, remove_corrupt=True):
         verify_log_path = os.path.join(self.save_dir, 'verification_log.txt')
         dictionary_paths = [os.path.join(self.dictionary_dir, dict_name) for dict_name in sorted(os.listdir(self.dictionary_dir))]
         master_dictionary = {}
 
         # Combine dictionaries into 1 master dictionary
         for dictionary_path in dictionary_paths:
-            n_patches_dict = torch.load(dictionary_path)
-            master_dictionary.update(n_patches_dict)
-            # for path, n_patches in n_patches_dict.items():
-            #     if path not in master_dictionary:
-            #         master_dictionary[path] = n_patches
-            #     else: 
-            #         if n_patches != master_dictionary[path]:
-            #             informal_log("Discrepancy with segmentations at {}. Received {} and {}".format(
-            #                 path, n_patches, master_dictionary[path]
-            #             ), verify_log_path)
+            try:
+                n_patches_dict = torch.load(dictionary_path)
+                master_dictionary.update(n_patches_dict)
+            except: 
+                raise ValueError("Dictionary at {} corrupted.".format(dictionary_path))
         
         # Check number of paths in dictionary is equal to number of directories in 'segmentations'
         segmentation_save_dir = os.path.join(self.save_dir, 'segmentations')
         segmentation_dirs = [os.path.join(segmentation_save_dir, image_id) \
                               for image_id in os.listdir(segmentation_save_dir)]
-        assert len(segmentation_dirs) == len(master_dictionary)
+        # assert len(segmentation_dirs) == len(master_dictionary)
         
         # For each segmentation directory, check number of patches is as expected
         for segmentation_dir in tqdm(segmentation_dirs):
+            if segmentation_dir not in master_dictionary:
+                informal_log("{},Not found in dictionary".format(segmentation_dir))
+                if remove_corrupt:
+                    shutil.rmtree(segmentation_dir)
+                continue
             n_patches = master_dictionary[segmentation_dir]
             superpixel_dir = os.path.join(segmentation_dir, 'superpixels')
             patches_dir = os.path.join(segmentation_dir, 'patches')
+
+            # Check if correct number of patches for superpixels
             if len(os.listdir(superpixel_dir)) != n_patches:
                 informal_log("{},S,expected:{},found:{}".format(
                     segmentation_dir,n_patches,len(os.listdir(superpixel_dir))
                 ), verify_log_path, timestamp=False)
+                if remove_corrupt:
+                    shutil.rmtree(segmentation_dir)
+                    master_dictionary.pop(segmentation_dir)
+            # Check if correct number of patches for patches    
             if len(os.listdir(patches_dir)) != n_patches:
                 informal_log("{},P,expected:{},found:{}".format(
                     segmentation_dir,n_patches,len(os.listdir(patches_dir))
                 ), verify_log_path, timestamp=False)
+                if remove_corrupt:
+                    shutil.rmtree(segmentation_dir)
+                    master_dictionary.pop(segmentation_dir)
+
+        # Assert cleanliness
+        # Get number of image folders in 'segmentations' now
+        segmentation_dirs = [os.path.join(segmentation_save_dir, image_id) \
+                              for image_id in os.listdir(segmentation_save_dir)]
+        assert len(segmentation_dirs) == len(master_dictionary)
+        for segmentation_dir in segmentation_dirs:
+            assert segmentation_dir in master_dictionary
+        # Clear out the n_patches_dictionary directory and store validated dictionary
+        # for dictionary_path in dictionary_paths:
+        #     os.remove(dictionary_path)
+
+        master_dictionary_path = os.path.join(
+            os.path.dirname(self.dictionary_dir), 
+            'validate', 'validated_n_patches_dictionary.pth')
+        ensure_dir(os.path.dirname(master_dictionary_path))
+        torch.save(master_dictionary,master_dictionary_path)
+        informal_log("Saved updated dictionary of n_patches to {}".format(master_dictionary_path))
 
         return
 
@@ -264,8 +320,14 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
 
+    # Args for features model. I am lazy
+    model_checkpoint_path = os.path.join('checkpoints/resnet18_places365.pth')
+    model_arch = 'resnet18'
+    n_classes = 365
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
     # check valid mode
-    modes_available = ['preprocess', 'main', 'verify']
+    modes_available = ['preprocess', 'main', 'verify', 'features']
     if args.mode not in modes_available:
         raise ValueError("Mode '{}' not recognized. Please choose from {}".format(args.mode, modes_available))
     
@@ -287,7 +349,7 @@ if __name__ == "__main__":
         image_shape=image_shape)
     
     if args.mode == 'preprocess':
-        imseg.get_image_paths(
+        imseg.preprocess(
             splits=args.splits,
             overwrite=args.overwrite
         )
@@ -299,3 +361,11 @@ if __name__ == "__main__":
         )
     elif args.mode == 'verify':
         imseg.verify()
+    elif args.mode == 'features':
+        imseg.save_features(
+            splits=args.splits,
+            model_arch=model_arch,
+            n_classes=n_classes,
+            device=device,
+            model_checkpoint_path=model_checkpoint_path,
+        )
