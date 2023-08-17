@@ -381,7 +381,30 @@ class ImageSegmenter(object):
 
         return
 
-    def verify_features(self):
+    def _consolidate_features_by_split(self, features_dict, overwrite=False):
+        splits = ['train', 'test', 'val']
+        
+        # Obtain paths to features that belong in each split
+        image_labels = torch.load(self.image_labels_path)
+        split_features_save_path_template = os.path.join(self.save_dir, '{}_superpixel_features.pth')
+        for split in splits:
+            split_features_save_path = split_features_save_path_template.format(split)
+            if os.path.exists(split_features_save_path) and not overwrite:
+                continue
+            split_image_paths = image_labels[split]
+            split_features_paths = []
+            split_features = []
+            for image_path in split_image_paths:
+                image_id = os.path.basename(image_path).split('.')[0]
+                features_path = os.path.join(self.features_dir, '{}_features.pth'.format(image_id))
+                split_features_paths.append(features_path)
+
+                split_features.append(features_dict[features_path])
+            torch.save(split_features, split_features_save_path)
+            # features_paths[split] = split_features_paths
+        
+    def verify_features(self,
+                        consolidate=True):
         '''
         Verify that the number of features for each image corresponds with the number of patches
         in the dictionary at <self.dictionary_dir>/validate/validated_n_patches_dictionary.pth
@@ -403,6 +426,7 @@ class ImageSegmenter(object):
         features_files = os.listdir(self.features_dir)
         features_paths = [os.path.join(self.features_dir, filename) for filename in features_files]
         # Ensure the features at features_path has the correct number of features (1 per patch)
+        features_dict = {}
         for features_path in features_paths:
             features = torch.load(features_path)
             n_features = features.shape[0]
@@ -411,7 +435,12 @@ class ImageSegmenter(object):
             if n_features != updated_master_dictionary[image_id]:
                 print("{} has {} patches in the dictionary but {} features".format(
                     image_id, updated_master_dictionary[image_id], n_features))
-
+            features_dict[features_path] = features
+        
+        if consolidate:
+            self._consolidate_features_by_split(
+                features_dict=features_dict
+            )
 
 if __name__ == "__main__":
     parser =argparse.ArgumentParser()
@@ -480,5 +509,7 @@ if __name__ == "__main__":
             debug=args.debug
         )
     elif args.mode == 'verify_features':
-        imseg.verify_features()
+        imseg.verify_features(
+            consolidate=True
+        )
 
