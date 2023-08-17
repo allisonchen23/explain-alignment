@@ -14,8 +14,11 @@ class ConceptPresence():
                  checkpoint_dir,
                  concept_key,
                  features,
+                 image_labels_path,
+                 features_dir,
                  splits=['train', 'val', 'test'],
                  presence_threshold=0.5,
+                 pooling_mode=None,
                  log_path=None):
         '''
         Given a concept dictionary, load CAVs, and create concept-presence vectors for all features
@@ -40,6 +43,8 @@ class ConceptPresence():
                 str is splits
                 features of different splits
                 np.array : N x D dimensions
+            features_paths : list[str]
+                List of paths to each image's features stored in .pth files as np.arrays
             checkpoint_dir : str
                 same checkpoint dir as from run_ace.py
                 CAVs should be stored in 'saved/<concept_key>/cavs'
@@ -58,7 +63,9 @@ class ConceptPresence():
         self.log_path = log_path
 
         self.features = features
+        self.features_dir = features_dir
         self.presence_threshold = presence_threshold
+        self.pooling_mode = pooling_mode
         self.splits = splits
         assert len(self.features) == len(self.splits)
 
@@ -66,9 +73,128 @@ class ConceptPresence():
         cav_dir_contents = os.listdir(self.cav_dir)
         assert set(cav_dir_contents) == set(self.concept_names)
 
-    def get_presence(self,
+        # Load image_labels
+        image_labels = torch.load(image_labels_path)
+
+        # Create dictionary of split : paths to features
+        self.features_paths = {}
+        for split in splits:
+            split_image_paths = image_labels[split]
+            split_features_paths = []
+            for image_path in split_image_paths:
+                image_id = os.path.basename(image_path).split('.')[0]
+                features_path = os.path.join(self.features_dir, '{}_features.pth'.format(image_id))
+                split_features_paths.append(features_path)
+            self.features_paths[split] = split_features_paths
+        
+        # self.features = self._load_features()
+        self.features = {}
+
+    def _load_split_features(self, split):
+        split_paths = self.features_paths[split]
+        split_features = [torch.load(path) for path in tqdm(split_paths)]
+        return split_features
+    
+    def get_one_concept_presence(self,
+                                 concept_cavs,
+                                 features):
+        '''
+        Given a list of CAVs for 1 concept, and np.array of features from patches, output concept presence/absence
+
+        Arg(s):
+            concept_cavs : list[CAV]
+                C-length repeated trials trained for a single CAV
+            features : N x D np.array
+                Features from the image.
+                If using with ACE, these should be the features from the superpixel patches for a single image
+            pooling : None or str
+                If None, return a N-dim np.array of {0, 1} for concept presence in each features
+                If 'max': return maximum concept presence across features
+                If 'average': return average concept presence -> threshold with 0.5
+        
+        Returns: 
+            N-dim np.array of {0, 1} OR
+            int {0, 1}
+        '''
+        concept_presences = []
+        for cav in concept_cavs:
+            lm = cav['linear_model']
+
+            # N-dim vector
+            concept_predictions = lm.predict(features)
+            # This is because how CAV is implemented
+            # First concept corresponds with the target concept, second is a random concept
+            concept_present = 1 - concept_predictions
+            concept_presences.append(concept_present)
+
+        # Take average across trials for each feature
+        concept_presences = np.stack(concept_presences, axis=1) # N x C vector
+        concept_presence = np.mean(concept_presences, axis=1) # N-dim vector
+        
+        if self.pooling_mode is None:
+            return np.where(concept_presence > self.presence_threshold, 1, 0)
+        elif self.pooling_mode == 'max':
+            concept_presence = np.max(concept_presence)
+        elif self.pooling_mode == 'average':
+            concept_presence = np.mean(concept_presence)
+        if concept_presence > self.presence_threshold:
+            return 1
+        else:
+            return 0
+
+        
+    def get_split_one_concept_presence(self,
+                                        split_features,
+                                        concept_cavs,
                      save=True,
                      overwrite=False):
+        '''
+        
+        '''
+        
+
+        split_concept_presence = []
+        for image_features in split_features:
+            image_concept_presence = self.get_one_concept_presence(
+                concept_cavs=concept_cavs,
+                features=image_features,
+                # pooling=self.pooling_mode,
+            ) # either a N_features-dim vector (one for each patch) or a binary value
+            split_concept_presence.append(image_concept_presence)
+        return split_concept_presence
+
+    def get_split_all_concept_presence(self, split):
+        if split not in self.features:
+            informal_log("Loading features from {} split".format(split), self.log_path)
+            self.features[split] = self._load_split_features(split=split)
+        
+        # Iterate through all concepts
+        all_concept_presences = []
+        for concept_name in self.concept_names:
+            concept_cav_dir = os.path.join(self.cav_dir, concept_name)
+            cav_paths = [
+                os.path.join(concept_cav_dir, cav_name) 
+                for cav_name in os.listdir(concept_cav_dir)
+            ]
+            # Load CAVs for this concept
+            concept_cavs = []
+            for cav_path in cav_paths:
+                with open(cav_path, 'rb') as file:
+                    cav_instance = pickle.load(file)
+                concept_cavs.append(cav_instance)
+            split_concept_presence = self.get_split_one_concept_presence(
+                concept_cavs=concept_cavs,
+                split_features=self.features[split]
+            )
+            all_concept_presences.append(split_concept_presence)
+
+        if self.pooling_mode is None:
+            pass
+        else:
+            all_concept_presences = np.stack(all_concept_presences, axis=1)
+        return
+
+    def old(self):
         '''
         Determine if concepts are present or absent from each feature vector
 

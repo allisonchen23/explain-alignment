@@ -4,21 +4,24 @@ import torch
 
 from concept_presence import ConceptPresence
 sys.path.insert(0, 'src')
-from utils import informal_log
+from utils.utils import informal_log
 
 def main(n_samples):
-    checkpoint_dir = 'temp_save_{}'.format(n_samples)
+    checkpoint_dir = 'saved/ace/n_{}'.format(n_samples)
     concept_key = 'concepts-K_25-min_20-max_40'
-    concept_dictionary_path = os.path.join(checkpoint_dir, 'saved/concepts-K_25-min_20-max_40/concept_dictionary.pth')
+    concept_dictionary_path = os.path.join(checkpoint_dir, 'saved/{}/concept_dictionary.pth'.format(concept_key))
     splits = ['train', 'val', 'test']
     features_paths = [
         '/n/fs/ac-alignment/explain-alignment/saved/ADE20K/0501_105640/{}_features.pth'.format(split)
         for split in splits
     ]
 
+    updated_features_dir = 'data/ade20k/ace/full_ade20k/superpixel_features'
+    image_labels_path = 'data/ade20k/full_ade20k_imagelabels.pth'
     save_pv = True
     overwrite_pv = False
     presence_threshold = 0.5
+    pooling_mode = 'max'
 
     # Load in features from each split
     features = []
@@ -26,7 +29,7 @@ def main(n_samples):
         features.append(torch.load(path)['features'])
 
     concept_dictionary = torch.load(concept_dictionary_path)
-    log_path = os.path.join(concept_dictionary_path.split('saved')[0], 'log.txt')
+    log_path = os.path.join(os.path.dirname(concept_dictionary_path), 'concept_presence_log.txt')
     informal_log("---***---\nObtaining ConceptPresenceVectors", log_path,timestamp=True)
 
     cp = ConceptPresence(
@@ -34,11 +37,15 @@ def main(n_samples):
         checkpoint_dir=checkpoint_dir,
         concept_key=concept_key,
         features=features,
+        features_dir=updated_features_dir,
+        image_labels_path=image_labels_path,
         splits=['train', 'val', 'test'],
         presence_threshold=presence_threshold,
+        pooling_mode=pooling_mode,
         log_path=log_path
     )
 
+    cp.get_split_all_concept_presence(split='test')
     cp.get_presence(
         save=save_pv,
         overwrite=overwrite_pv
