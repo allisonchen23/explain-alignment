@@ -19,7 +19,8 @@ class ConceptPresence():
                  splits=['train', 'val', 'test'],
                  presence_threshold=0.5,
                  pooling_mode=None,
-                 log_path=None):
+                 log_path=None,
+                 debug=False):
         '''
         Given a concept dictionary, load CAVs, and create concept-presence vectors for all features
 
@@ -90,9 +91,23 @@ class ConceptPresence():
         # self.features = self._load_features()
         self.features = {}
 
-    def _load_split_features(self, split):
+        self.debug = debug
+
+    def _load_split_features(self, split, overwrite=False):
+        split_features_path = os.path.join(os.path.dirname(self.features_dir), '{}_superpixel_features.pth'.format(split))
+        if os.path.exists(split_features_path) and not overwrite and not self.debug:
+            split_features = torch.load(split_features_path)
+            return split_features
         split_paths = self.features_paths[split]
+        if self.debug:
+            split_paths = split_paths[:100]
         split_features = [torch.load(path) for path in tqdm(split_paths)]
+        
+        if not self.debug:
+            torch.save(split_features, split_features_path)
+
+        # if self.debug:
+        #     split_features = split_features[:100]
         return split_features
     
     def get_one_concept_presence(self,
@@ -170,7 +185,7 @@ class ConceptPresence():
         
         # Iterate through all concepts
         all_concept_presences = []
-        for concept_name in self.concept_names:
+        for concept_name in tqdm(self.concept_names):
             concept_cav_dir = os.path.join(self.cav_dir, concept_name)
             cav_paths = [
                 os.path.join(concept_cav_dir, cav_name) 
@@ -189,6 +204,8 @@ class ConceptPresence():
             all_concept_presences.append(split_concept_presence)
 
         if self.pooling_mode is None:
+            # TODO: implement how to consolidate if diff number of features per image
+            all_concept_presences = np.stack(all_concept_presences, axis=-1)
             pass
         else:
             all_concept_presences = np.stack(all_concept_presences, axis=1)
