@@ -691,11 +691,10 @@ class ConceptDiscovery(object):
             n_trials : int
                 number of repeated trials (# of random concepts to choose)
         '''
-        # TODO: add hparameter search?
-        # TODO: add best regularization to cav_hparams?
 
         target_concept_activations = cav_activations[target_concept_name][bottleneck_name]
         # Choose random other concepts to use as negative examples
+        # Potential TODO: change this so there is a directory of images where the random concepts come from
         random_concept_pool = concept_names.copy()
         random_concept_pool.remove(target_concept_name)
         random_concepts = np.random.choice(random_concept_pool, size=n_trials, replace=False)

@@ -240,6 +240,10 @@ class ImageSegmenter(object):
                       channel_mean,
                       overwrite=False,
                       debug=False):
+        '''
+        Function to take in the superpixel patches for an image and save model features.
+        Can be run in parallel with sbatch --array
+        '''
         log_path = os.path.join(self.log_dir, 'features_log.txt')
 
         # Store paths to directories
@@ -417,7 +421,7 @@ class ImageSegmenter(object):
             return
         master_dictionary = torch.load(master_dictionary_path)
         updated_master_dictionary = {}
-        segmentation_dirs = master_dictionary.keys()
+
         # convert master dictionary from segmentation_dirs to image_ids as keys
         for segmentation_dir, n_patches in master_dictionary.items():
             image_id = os.path.basename(segmentation_dir)
@@ -427,7 +431,7 @@ class ImageSegmenter(object):
         features_paths = [os.path.join(self.features_dir, filename) for filename in features_files]
         # Ensure the features at features_path has the correct number of features (1 per patch)
         features_dict = {}
-        for features_path in features_paths:
+        for features_path in tqdm(features_paths):
             features = torch.load(features_path)
             n_features = features.shape[0]
             image_id = os.path.basename(features_path).split('_features.pth')[0]
