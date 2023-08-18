@@ -3,7 +3,7 @@
 #SBATCH --nodes=1             # nodes requested
 #SBATCH --ntasks=1            # tasks requested
 #SBATCH --cpus-per-task=8    # Specify the number of CPUs your task will need.
-#SBATCH --gres=gpu:rtx_3090:1          # the number of GPUs requested
+#SBATCH --gres=gpu:rtx_2080:1          # the number of GPUs requested
 #SBATCH --mem=50G             # memory
 #SBATCH -o slurm_logs/%A_%a_out.txt         # send stdout to outfile
 #SBATCH -e slurm_logs/%A_%a_err.txt         # send stderr to errfile

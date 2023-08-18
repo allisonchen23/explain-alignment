@@ -19,76 +19,8 @@ from parse_config import ConfigParser
 from predict import predict, restore_and_test
 
 
-def main(config_json, 
-         hparam_search=False,
-         trial_id=None,
-         train_data_loader=None, 
-         val_data_loader=None, 
-         seed=0):
-    # Setup for hparam search
-    if hparam_search:
-        try:
-            wandb.init()
-            wandb_config = wandb.config
-            hparam_str = ''
-            if 'lr' in wandb_config:
-                config_json['optimizer']['args']['lr'] = wandb_config.lr
-                hparam_str += 'lr_{}'.format(wandb_config.lr)
-            if 'wd' in wandb_config:
-                config_json['optimizer']['args']['weight_decay'] = wandb_config.wd
-                hparam_str += 'wd_{}'.format(wandb_config.wd)
-            if 'momentum' in wandb_config:
-                config_json['optimizer']['args']['momentum'] = wandb_config.momentum
-                hparam_str += 'mom_{}'.format(wandb_config.momentum)
-            run_id = build_run_id(config_json)
-            if trial_id is not None:
-                run_id = os.path.join(run_id, trial_id)
-            run_id = os.path.join(
-                run_id,
-                'trials',
-                'lr_{}-wd_{}-mom_{}'.format(
-                wandb_config.lr, 
-                wandb_config.wd,
-                wandb_config.momentum)
-            )
-            config = ConfigParser(config_json, run_id=run_id)
-        except:
-            config = ConfigParser(config_json, run_id=trial_id)
-            wandb.init(
-                project=config.config['name'],
-                name=config.run_id,
-                config={
-                    'arch': config.config['arch']['type'],
-                    'lr': config.config['optimizer']['args']['lr'],
-                    'wd': config.config['optimizer']['args']['weight_decay'],
-                    'momentum': config.config['optimizer']['args']['momentum'],
-                    'optimizer': config.config['optimizer']['type'],
-                    'save_dir': os.path.dirname(config.save_dir),
-                    'seed': seed
-                    
-                }
-            )
-    # Set up for normal trial
-    else:
-        config = ConfigParser(config_json, run_id=trial_id)
-        wandb.init(
-                project=config.config['name'],
-                name=config.run_id,
-                config={
-                    'arch': config.config['arch']['type'],
-                    'lr': config.config['optimizer']['args']['lr'],
-                    'wd': config.config['optimizer']['args']['weight_decay'],
-                    'momentum': config.config['optimizer']['args']['momentum'],
-                    'optimizer': config.config['optimizer']['type'],
-                    'save_dir': os.path.dirname(config.save_dir),
-                    'seed': seed
-                }
-            )
-        
-    # Get logger
+def main(config, train_data_loader=None, val_data_loader=None, seed=0):
     logger = config.get_logger('train')
-
-    # Set seed
     if seed is not None:
         torch.manual_seed(seed)
         torch.backends.cudnn.deterministic = True
@@ -97,6 +29,20 @@ def main(config_json,
         logger.info("Set seed to {}".format(seed))
     else:
         logger.info("No seed set")
+        
+    wandb.init(
+            project=config.config['name'],
+            name=config.run_id,
+            config={
+                'arch': config.config['arch']['type'],
+                'lr': config.config['optimizer']['args']['lr'],
+                'wd': config.config['optimizer']['args']['weight_decay'],
+                'momentum': config.config['optimizer']['args']['momentum'],
+                'optimizer': config.config['optimizer']['type'],
+                'save_dir': os.path.dirname(config.save_dir),
+                'seed': seed
+            }
+        )
 
     # setup data_loader instances
     if train_data_loader is None and val_data_loader is not None:
@@ -259,31 +205,6 @@ def main(config_json,
         logger.info("Saving test predictions and results to {}".format(os.path.dirname(test_output_save_path)))
     return model
 
-def build_run_id(config_json, path_prefix='data/explainer_inputs'):
-    '''
-    Following format from generating the explainer inputs, the new path should be:
-        root / dataset_type / input_type / <more params> / explainer hidden layers
-    '''
-    # save_root = config_json['trainer']['save_dir']
-    input_dataset_path = config_json['dataset']['args']['input_features_path']
-    # Obtain relative path from the path prefix (typically 'data/explainer_inputs')
-    relative_path = os.path.relpath(path=input_dataset_path, start=path_prefix)
-    # Remove filename from path
-    save_local_dir = os.path.dirname(relative_path)
-    # input_dataset_name = os.path.basename(input_dataset_path).split("explainer_inputs.pth")[0]
-    # save_local_dir = input_dataset_name.replace('_', '/')
-
-    # Obtain number of hidden features
-    hidden_layers = config_json['arch']['args']['n_hidden_features']
-    if len(hidden_layers) == 0:
-        run_id = 'hidden_NA'
-    else:
-        run_id = 'hidden'
-        for h in hidden_layers:
-            run_id += '_{}'.format(h)
-
-    run_id = os.path.join(save_local_dir, run_id)
-    return run_id
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PyTorch Template')
@@ -297,8 +218,6 @@ if __name__ == '__main__':
                       help='Set seed (if not None)')
     parser.add_argument('--trial_id', default=None, type=str,
                       help='ID of trial if replacing timestamp')
-    parser.add_argument('--hparam_search', action='store_true',
-                      help='Set if performing hyperparameter search')
 
     # custom cli options to modify configuration from default values given in json file.
     CustomArgs = collections.namedtuple('CustomArgs', 'flags type target')
@@ -309,8 +228,7 @@ if __name__ == '__main__':
     ]
     args = parser.parse_args()
     config_json = read_json(args.config)
-    # config = ConfigParser(config_json, run_id=args.trial_id)
-    main(config_json,
-         hparam_search=args.hparam_search,
-         trial_id=args.trial_id,
+    config = ConfigParser(config_json, run_id=args.trial_id)
+    # config = ConfigParser.from_args(parser, options)
+    main(config,
          seed=args.seed)

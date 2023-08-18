@@ -102,6 +102,8 @@ def load_image(image_path, data_format='HWC', resize=None):
 
     Returns :
         C x H x W np.array normalized between [0, 1]
+        or 
+        H x W x C np.array normalized between [0, 1]
     '''
     image = Image.open(image_path).convert("RGB")
     if resize is not None:
@@ -312,7 +314,7 @@ def informal_log(s, filepath=None, to_console=True, timestamp=True):
         print(s)
 
     if filepath is not None:
-        if not os.path.isdir(os.path.dirname(filepath)):
+        if len(os.path.dirname(filepath)) > 0 and not os.path.isdir(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
             with open(filepath, 'w+') as o:
                o.write(s + '\n')
