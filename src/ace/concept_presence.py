@@ -91,16 +91,23 @@ class ConceptPresence():
         # self.features = self._load_features()
         self.features = {}
 
+        # Save paths
+        self.save_pv_path_template = os.path.join(self.save_dir, 'presence_vectors', '{}_{}', '{}_{}presence_vectors.pth')
         self.debug = debug
+        if self.debug:
+            self.n_debug = 100
 
     def _load_split_features(self, split, overwrite=False):
+        split_paths = self.features_paths[split]
+
         split_features_path = os.path.join(os.path.dirname(self.features_dir), '{}_superpixel_features.pth'.format(split))
         if os.path.exists(split_features_path) and not overwrite and not self.debug:
             split_features = torch.load(split_features_path)
             return split_features
-        split_paths = self.features_paths[split]
+        
         if self.debug:
-            split_paths = split_paths[:100]
+            split_paths = split_paths[:self.n_debug]
+        
         split_features = [torch.load(path) for path in tqdm(split_paths)]
         
         if not self.debug:
@@ -177,14 +184,44 @@ class ConceptPresence():
             ) # either a N_features-dim vector (one for each patch) or a binary value
             split_concept_presence.append(image_concept_presence)
         return split_concept_presence
+    
+    def get_all_concepts_presence(self,
+                                  features,
+                                  concept_cavs_dict):
+        concepts_presence = []
+        for concept_name in self.concept_names:
+            cavs = concept_cavs_dict[concept_name]
+            image_concept_presence = self.get_one_concept_presence(
+                concept_cavs=cavs,
+                features=features
+            )
+            concepts_presence.append(image_concept_presence)
+        concepts_presence = np.stack(concepts_presence, axis=-1)
 
-    def get_split_all_concept_presence(self, split):
+        return concepts_presence
+
+
+    def get_split_all_concept_presence(self, split, overwrite=False):
+        save_pv_path = self.save_pv_path_template.format(
+            self.pooling_mode, self.presence_threshold, split, self.n_debug if self.debug else '')
+        ensure_dir(os.path.dirname(save_pv_path))
+
+        print(save_pv_path)
+        if os.path.exists(save_pv_path) and not overwrite:
+            all_presence_vectors = torch.load(save_pv_path)
+            return all_presence_vectors
+        
         if split not in self.features:
             informal_log("Loading features from {} split".format(split), self.log_path)
-            self.features[split] = self._load_split_features(split=split)
-        
+            split_features = self._load_split_features(split=split)
+        split_paths = self.features_paths[split]
         # Iterate through all concepts
         all_concept_presences = []
+        split_paths_features = list(zip(split_paths, split_features))
+
+        # Load in all cavs
+        informal_log("Loading all CAVs for {} concepts".format(len(self.concept_names)), self.log_path)
+        cavs = {}
         for concept_name in tqdm(self.concept_names):
             concept_cav_dir = os.path.join(self.cav_dir, concept_name)
             cav_paths = [
@@ -197,79 +234,84 @@ class ConceptPresence():
                 with open(cav_path, 'rb') as file:
                     cav_instance = pickle.load(file)
                 concept_cavs.append(cav_instance)
-            split_concept_presence = self.get_split_one_concept_presence(
-                concept_cavs=concept_cavs,
-                split_features=self.features[split]
-            )
-            all_concept_presences.append(split_concept_presence)
+            cavs[concept_name] = concept_cavs
 
-        if self.pooling_mode is None:
-            # TODO: implement how to consolidate if diff number of features per image
-            all_concept_presences = np.stack(all_concept_presences, axis=-1)
-            pass
-        else:
-            all_concept_presences = np.stack(all_concept_presences, axis=1)
-        return
+        all_presence_vectors = []
+        informal_log("Iterating through {} split calculating presence vectors...".format(split))
+        for features_path, features in tqdm(split_paths_features):
+            concepts_presence = self.get_all_concepts_presence(
+                features=features,
+                concept_cavs_dict=cavs)
+            all_presence_vectors.append(concepts_presence)
 
-    def old(self):
-        '''
-        Determine if concepts are present or absent from each feature vector
-
-        Returns: 
-            list[np.array]
-                Same number of elements as self.features
-                Each element is an (self.features.shape[0] x len(self.concept_names)) np.array
-                    corresponding to concept presence.
-        '''
-
-        presence_vectors_path = os.path.join(self.save_dir, 'presence_vectors.pth')
-        if not overwrite and os.path.exists(presence_vectors_path):
-            pv = torch.load(presence_vectors_path)
-            informal_log("Loaded presence vectors from {}".format(presence_vectors_path),
-                         self.log_path, timestamp=True)
-            return pv
-        # pv stands for presence vectors
-        pv = {}
-        informal_log("Creating presence vectors...", self.log_path, timestamp=True)
-        for split, split_features in zip(self.splits, self.features):
-            informal_log("Processing {} features...".format(split), self.log_path, timestamp=True)
-
-            split_pv = []
-            for concept_name in self.concept_names:
-                concept_cav_dir = os.path.join(self.cav_dir, concept_name)
-                cav_paths = [
-                    os.path.join(concept_cav_dir, cav_name) 
-                    for cav_name in os.listdir(concept_cav_dir)
-                ]
-                trial_pvs = []
-
-                # Get concept predictions for all trained CAVs (against different negative examples)
-                for cav_path in cav_paths:
-                    with open(cav_path, 'rb') as file:
-                        cav_instance = pickle.load(file)
-                    lm = cav_instance['linear_model']
-
-                    concept_predictions = lm.predict(split_features)
-                    # This is because how CAV is implemented
-                    # First concept corresponds with the target concept, second is a random concept
-                    concept_present = 1 - concept_predictions
-                    trial_pvs.append(concept_present)
-                
-                trial_pvs = np.stack(trial_pvs, axis=1) # N_trials X N_samples in features
-                trial_pv = np.mean(trial_pvs, axis=1) # N_samples vector with proportion of CAVs that said concept is present
-                trial_pv = np.where(trial_pv > self.presence_threshold, 1, 0)
-
-                split_pv.append(trial_pv)
-            
-            # List of length n_concepts, make into array of N_samples x N_concepts
-            split_pv = np.stack(split_pv, axis=1)
-            pv[split] = split_pv
+        if self.pooling_mode is not None:
+            all_presence_vectors = np.stack(all_presence_vectors, axis=0)
         
-        assert len(pv) == len(self.features)
+        informal_log("Saving {} presence vectors from {} split to {}".format(
+            len(all_presence_vectors), split, save_pv_path
+        ), self.log_path)
+        torch.save(all_presence_vectors, save_pv_path)
+        return all_presence_vectors
 
-        if save:
-            torch.save(pv, presence_vectors_path)
-            informal_log("Saved presence vectors to {}".format(presence_vectors_path), self.log_path, timestamp=True)
-        return pv
+    # def old(self):
+    #     '''
+    #     Determine if concepts are present or absent from each feature vector
+
+    #     Returns: 
+    #         list[np.array]
+    #             Same number of elements as self.features
+    #             Each element is an (self.features.shape[0] x len(self.concept_names)) np.array
+    #                 corresponding to concept presence.
+    #     '''
+
+    #     presence_vectors_path = os.path.join(self.save_dir, 'presence_vectors.pth')
+    #     if not overwrite and os.path.exists(presence_vectors_path):
+    #         pv = torch.load(presence_vectors_path)
+    #         informal_log("Loaded presence vectors from {}".format(presence_vectors_path),
+    #                      self.log_path, timestamp=True)
+    #         return pv
+    #     # pv stands for presence vectors
+    #     pv = {}
+    #     informal_log("Creating presence vectors...", self.log_path, timestamp=True)
+    #     for split, split_features in zip(self.splits, self.features):
+    #         informal_log("Processing {} features...".format(split), self.log_path, timestamp=True)
+
+    #         split_pv = []
+    #         for concept_name in self.concept_names:
+    #             concept_cav_dir = os.path.join(self.cav_dir, concept_name)
+    #             cav_paths = [
+    #                 os.path.join(concept_cav_dir, cav_name) 
+    #                 for cav_name in os.listdir(concept_cav_dir)
+    #             ]
+    #             trial_pvs = []
+
+    #             # Get concept predictions for all trained CAVs (against different negative examples)
+    #             for cav_path in cav_paths:
+    #                 with open(cav_path, 'rb') as file:
+    #                     cav_instance = pickle.load(file)
+    #                 lm = cav_instance['linear_model']
+
+    #                 concept_predictions = lm.predict(split_features)
+    #                 # This is because how CAV is implemented
+    #                 # First concept corresponds with the target concept, second is a random concept
+    #                 concept_present = 1 - concept_predictions
+    #                 trial_pvs.append(concept_present)
+                
+    #             trial_pvs = np.stack(trial_pvs, axis=1) # N_trials X N_samples in features
+    #             trial_pv = np.mean(trial_pvs, axis=1) # N_samples vector with proportion of CAVs that said concept is present
+    #             trial_pv = np.where(trial_pv > self.presence_threshold, 1, 0)
+
+    #             split_pv.append(trial_pv)
+            
+    #         # List of length n_concepts, make into array of N_samples x N_concepts
+    #         split_pv = np.stack(split_pv, axis=1)
+    #         pv[split] = split_pv
+        
+    #     assert len(pv) == len(self.features)
+
+    #     if save:
+    #         torch.save(pv, presence_vectors_path)
+    #         informal_log("Saved presence vectors to {}".format(presence_vectors_path), self.log_path, timestamp=True)
+    #     return pv
 
 

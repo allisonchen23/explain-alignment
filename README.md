@@ -28,3 +28,14 @@ SBATCH command: `sbatch --array [1-n_jobs]%<n_jobs_at_once> <path_to_bash_file> 
 ### Get top labeled concepts as feature vectors
 * Run `src/save_attributes.py` which will
     * Create one hot attributes for each split
+
+
+## ACE
+
+### Segmenting All Images into Superpixels
+* Run python file `src/ace/segment_images.py` with the `--mode main`
+* Use the bash script `bash/ace/segment_images.sh` (make sure you change the mode)
+* But use sbatch to run in parallel: `sbatch --array [1-N] bash/ace/segment_images.sh`
+* After they are done, you can run `src/ace/segment_images.py` with `--mode verify_superpixels` to ensure no corrupt/incomplete files/directories
+* Then run `src/ace/segment_images.py` with `--mode features`
+* Lastly make sure all features are kosher with `src/ace/segment_images.py` and `--mode verify_features`
