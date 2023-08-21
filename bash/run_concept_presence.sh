@@ -5,14 +5,15 @@
 #SBATCH --cpus-per-task=8    # Specify the number of CPUs your task will need.
 #SBATCH --gres=gpu:rtx_3090:1          # the number of GPUs requested
 #SBATCH --mem=50G             # memory 
-#SBATCH -o temp/%j_%x_run.txt         # send stdout to outfile
-#SBATCH -e temp/%j_%x_err.txt         # send stderr to errfile
+#SBATCH -o slurm_logs/%j_%x_run.txt         # send stdout to outfile
+#SBATCH -e slurm_logs/%j_%x_err.txt         # send stderr to errfile
 #SBATCH -t 72:00:00           # time requested in hour:minute:second
 
 SPLIT=$1
 
 python src/ace/run_concept_presence.py \
 --n_samples 800 \
+--n_concepts 114 \
 --pooling_mode average \
 --presence_threshold 0.6 \
 --split $SPLIT 

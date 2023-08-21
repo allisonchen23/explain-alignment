@@ -14,17 +14,17 @@ import wandb
 
 sys.path.insert(0, 'src')
 from utils.utils import ensure_dir, read_json, informal_log, copy_file, write_json
-from utils.visualizations import plot
-from utils.model_utils import prepare_device
+# from utils.visualizations import plot
+# from utils.model_utils import prepare_device
 
-import model.metric as module_metric
-import model.loss as module_loss
-import datasets.datasets as module_data
-import model.model as module_model
+# import model.metric as module_metric
+# import model.loss as module_loss
+# import datasets.datasets as module_data
+# import model.model as module_model
 
-from src.train import main as train_fn
-from predict import predict
-from parse_config import ConfigParser
+# # from train_old import main as train_fn
+# from predict import predict
+# from parse_config import ConfigParser
 
 
 sys.path.insert(0, 'setup')
