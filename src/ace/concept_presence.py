@@ -92,7 +92,12 @@ class ConceptPresence():
         self.features = {}
 
         # Save paths
-        self.save_pv_path_template = os.path.join(self.save_dir, 'presence_vectors', '{}_{}', '{}_{}presence_vectors.pth')
+        self.save_pv_path_template = os.path.join(
+            self.save_dir, 
+            'presence_vectors', 
+            '{}_{}'.format(self.pooling_mode, self.presence_threshold), 
+            '{}_{}presence_vectors.pth')
+        
         self.debug = debug
         if self.debug:
             self.n_debug = 100
@@ -203,7 +208,7 @@ class ConceptPresence():
 
     def get_split_all_concept_presence(self, split, overwrite=False):
         save_pv_path = self.save_pv_path_template.format(
-            self.pooling_mode, self.presence_threshold, split, self.n_debug if self.debug else '')
+            split, self.n_debug if self.debug else '')
         ensure_dir(os.path.dirname(save_pv_path))
 
         print(save_pv_path)
@@ -252,66 +257,3 @@ class ConceptPresence():
         ), self.log_path)
         torch.save(all_presence_vectors, save_pv_path)
         return all_presence_vectors
-
-    # def old(self):
-    #     '''
-    #     Determine if concepts are present or absent from each feature vector
-
-    #     Returns: 
-    #         list[np.array]
-    #             Same number of elements as self.features
-    #             Each element is an (self.features.shape[0] x len(self.concept_names)) np.array
-    #                 corresponding to concept presence.
-    #     '''
-
-    #     presence_vectors_path = os.path.join(self.save_dir, 'presence_vectors.pth')
-    #     if not overwrite and os.path.exists(presence_vectors_path):
-    #         pv = torch.load(presence_vectors_path)
-    #         informal_log("Loaded presence vectors from {}".format(presence_vectors_path),
-    #                      self.log_path, timestamp=True)
-    #         return pv
-    #     # pv stands for presence vectors
-    #     pv = {}
-    #     informal_log("Creating presence vectors...", self.log_path, timestamp=True)
-    #     for split, split_features in zip(self.splits, self.features):
-    #         informal_log("Processing {} features...".format(split), self.log_path, timestamp=True)
-
-    #         split_pv = []
-    #         for concept_name in self.concept_names:
-    #             concept_cav_dir = os.path.join(self.cav_dir, concept_name)
-    #             cav_paths = [
-    #                 os.path.join(concept_cav_dir, cav_name) 
-    #                 for cav_name in os.listdir(concept_cav_dir)
-    #             ]
-    #             trial_pvs = []
-
-    #             # Get concept predictions for all trained CAVs (against different negative examples)
-    #             for cav_path in cav_paths:
-    #                 with open(cav_path, 'rb') as file:
-    #                     cav_instance = pickle.load(file)
-    #                 lm = cav_instance['linear_model']
-
-    #                 concept_predictions = lm.predict(split_features)
-    #                 # This is because how CAV is implemented
-    #                 # First concept corresponds with the target concept, second is a random concept
-    #                 concept_present = 1 - concept_predictions
-    #                 trial_pvs.append(concept_present)
-                
-    #             trial_pvs = np.stack(trial_pvs, axis=1) # N_trials X N_samples in features
-    #             trial_pv = np.mean(trial_pvs, axis=1) # N_samples vector with proportion of CAVs that said concept is present
-    #             trial_pv = np.where(trial_pv > self.presence_threshold, 1, 0)
-
-    #             split_pv.append(trial_pv)
-            
-    #         # List of length n_concepts, make into array of N_samples x N_concepts
-    #         split_pv = np.stack(split_pv, axis=1)
-    #         pv[split] = split_pv
-        
-    #     assert len(pv) == len(self.features)
-
-    #     if save:
-    #         torch.save(pv, presence_vectors_path)
-    #         informal_log("Saved presence vectors to {}".format(presence_vectors_path), self.log_path, timestamp=True)
-    #     return pv
-
-
