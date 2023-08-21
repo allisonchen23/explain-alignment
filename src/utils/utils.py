@@ -275,7 +275,7 @@ def list_to_dict(list_):
             input list
 
     Returns:
-        dict_: dict{ int : any}
+        dict_: dict{ any : int}
             corresponding dictionary to list_
     '''
     dict_ = {}
