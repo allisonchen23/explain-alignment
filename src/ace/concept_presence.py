@@ -217,6 +217,16 @@ class ConceptPresence():
 
     def get_split_all_concept_presence(self, split, overwrite=False):
         # TODO: to parallelize
+        # add parameters
+        # n_workers (this would get passed in via SLURM_ARRAY_TASK_COUNT default is 1
+        # worker_id (this would get passed in via SLURM_ARRAY_TASK_ID). default is None
+
+        # if worker_id is not None:
+            # assert worker_id < n_workers, "Invalid worker_id {}. Must be less than n_workers: {}".format(worker_id, n_workers)
+            # Create a directory 
+            # batch_save_dir = os.path.join(os.path.dirname(save_pv_path), '{}_batches'.format(split))
+            # ensure_dir(batch_save_dir)
+
         save_pv_path = self.save_pv_path_template.format(
             split, self.n_debug if self.debug else '')
         ensure_dir(os.path.dirname(save_pv_path))
@@ -226,10 +236,20 @@ class ConceptPresence():
             all_presence_vectors = torch.load(save_pv_path)
             return all_presence_vectors
         
+        
         if split not in self.features:
             informal_log("Loading features from {} split".format(split), self.log_path)
             split_features = self._load_split_features(split=split)
         split_paths = self.features_paths[split]
+        # if n_workers is not None and > 1:
+            # batch_size = (len(split_paths) // n_workers) + 1
+            # paths_batch = split_paths[worker_id * batch_size: (worker_id + 1) * batch_size]
+            # split_paths = paths_batch
+            # split_features = split_featuresworker_id * batch_size: (worker_id + 1) * batch_size]
+            # batch_save_pv_path = os.path.join(batch_save_dir, 'batch_{}.pth')
+
+            # presence_vector_dict = {}
+
         # Iterate through all concepts
         all_concept_presences = []
         split_paths_features = list(zip(split_paths, split_features))
@@ -258,12 +278,32 @@ class ConceptPresence():
                 features=features,
                 concept_cavs_dict=cavs)
             all_presence_vectors.append(concepts_presence)
+            # if n_workers > 1:
+                # presence_vector_dict[features_path] = features
 
         if self.pooling_mode is not None:
             all_presence_vectors = np.stack(all_presence_vectors, axis=0)
         
+        
+
+        # if n_workers is not None and > 1:
+            # Save to batch_save_pv_path presence_vector_dict
+            # count number of elements in os.listdir(batch_save_dir)
+            # if == n_workers:
+                # consolidate()
+
+        # else:
         informal_log("Saving {} presence vectors from {} split to {}".format(
             len(all_presence_vectors), split, save_pv_path
         ), self.log_path)
         torch.save(all_presence_vectors, save_pv_path)
         return all_presence_vectors
+
+    # Or maybe keep the conslidate in main and can consolidate across splits too
+    def consolidate_pv_batches(batch_save_dir,
+                       features_paths,
+                       save_pv_path):
+        '''
+        Given a directory of .pth dictionaries of path to patches features : np.array of concept vectors,
+            consolidate to one np.array, in the same order as features_paths and save to save_pv_path
+        '''
