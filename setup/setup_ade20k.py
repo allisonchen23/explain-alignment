@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 sys.path.insert(0, 'src')
 from utils.utils import ensure_dir
-from util
+# from util
 
 BRODEN_SUBSETS = ['ade20k', 'dtd', 'pascal']
 
@@ -46,7 +46,7 @@ def save_broden_subset(subset_name: str,
     # Only save rows where image is from subset
     image_df = image_df[image_df['image'].str.contains(subset_name)]
     # Only save rows with an annotation for scene
-    image_df = image_df[~image_df['scene'].isna()]
+    # image_df = image_df[~image_df['scene'].isna()]
     n_images = len(image_df)
     print("Filtered from {} to {} images from {} with annotations".format(
         n_images_broden, n_images, subset_name))
@@ -58,7 +58,12 @@ def save_broden_subset(subset_name: str,
         #print(idx)
         images.append(full_image_name)
         labels[full_image_name] = []
-        scene_labels[full_image_name] = image_df['scene'][idx]
+        scene = image_df['scene'][idx]
+        if pd.isna(scene):
+            scene = None
+        else:
+            scene = int(scene)
+        scene_labels[full_image_name] = scene # image_df['scene'][idx]
 
         # Add part and object annotations
         for cat in ['object', 'part']:
