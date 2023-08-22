@@ -153,6 +153,7 @@ if __name__ == "__main__":
     elif args.mode == 'consolidate':
         consolidate(
             n_samples=args.n_samples,
+            n_concepts=args.n_concepts,
             pooling_mode=args.pooling_mode,
             presence_threshold=args.presence_threshold
         )

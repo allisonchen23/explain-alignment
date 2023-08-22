@@ -15,6 +15,6 @@ python src/ace/run_concept_presence.py \
 --n_samples 800 \
 --n_concepts 114 \
 --pooling_mode average \
---presence_threshold 0.7 \
+--presence_threshold 0.45 \
 --split $SPLIT \
 --debug
