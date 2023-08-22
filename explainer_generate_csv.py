@@ -13,6 +13,7 @@ from utils.utils import read_lists, load_image, ensure_dir, write_lists
 from utils.visualizations import histogram, plot, show_image_rows, bar_graph, pie_chart
 from utils.df_utils import convert_string_columns
 from utils.metric_utils import top_2_confusion, add_confidence, sort_and_bin_df, calculate_bin_agreement, run_feature_importance_trial, correlated_variables, print_summary, filter_df, string_to_list, plot_metric_v_inputs
+from utils.human_results_utils import get_human_outputs_predictions
 
 DATASETS_AVAILABLE = ['cifar', 'ade20k']
 HUMAN_SURVEY_RESULTS_DIR = os.path.join('saved', 'ADE20K', 'survey_results', 'ADE20K_soft_labels')
@@ -130,9 +131,11 @@ def save_ade20k_human_out(df,
 
 
 def get_outputs(dataset_name: str,
+                csv_dir: str,
                 human_output_path: str,
                 model_output_path: str,
                 explainer_output_path: str,
+                overwrite=False,
                 verbose=True):
     '''
     Given paths to outputs for human, model and explainers, load and reformat to return uniform standard
@@ -142,50 +145,54 @@ def get_outputs(dataset_name: str,
         dict{str : dict{str : np.array}}
             Indexed by agent type -> dictionary indexed by output type -> outputs for test set
     '''
-    if dataset_name == 'cifar':
-        human_outputs = np.load(human_output_path)
-        human_predictions = np.argmax(human_outputs, axis=1)
-        human_out = {
-            'outputs': human_outputs,
-            'probabilities': human_outputs,
-            'predictions': human_predictions
-        }
-        model_out = torch.load(model_output_path)['test']
-        explainer_out = torch.load(explainer_output_path)['test']
-        outputs = {
-            'human': human_out,
-            'explainer': explainer_out,
-            'model': model_out
-        }
-        # ground_truth_labels = torch.load(processed_data_path)['test']['predictions']
-        return outputs
-    elif dataset_name == 'ade20k':
+    # if dataset_name == 'cifar':
+    #     human_outputs = np.load(human_output_path)
+    #     human_predictions = np.argmax(human_outputs, axis=1)
+    #     human_out = {
+    #         'outputs': human_outputs,
+    #         'probabilities': human_outputs,
+    #         'predictions': human_predictions
+    #     }
+    #     model_out = torch.load(model_output_path)['test']
+    #     explainer_out = torch.load(explainer_output_path)['test']
+    #     outputs = {
+    #         'human': human_out,
+    #         'explainer': explainer_out,
+    #         'model': model_out
+    #     }
+    #     # ground_truth_labels = torch.load(processed_data_path)['test']['predictions']
+    #     return outputs
+    if dataset_name == 'ade20k':
         # Process or load human outputs
-        if not os.path.exists(human_output_path):
-            csv_save_path = os.path.join(os.path.dirname(HUMAN_SURVEY_RESULTS_DIR), 'human_results.csv')
-            df = process_human_survey_csvs(
-                csv_dir=HUMAN_SURVEY_RESULTS_DIR,
-                csv_save_path=csv_save_path)
-            human_out = save_ade20k_human_out(
-                df=df,
-                human_output_save_path=human_output_path)
-        else:
-            human_out = torch.load(human_output_path)
+        human_outputs_predictions = get_human_outputs_predictions(
+            results_dir=csv_dir,
+            save_dir=os.path.dirname(human_output_path),
+            overwrite=overwrite)
+#         if not os.path.exists(human_output_path):
+#             csv_save_path = os.path.join(os.path.dirname(HUMAN_SURVEY_RESULTS_DIR), 'human_results.csv')
+#             df = process_human_survey_csvs(
+#                 csv_dir=HUMAN_SURVEY_RESULTS_DIR,
+#                 csv_save_path=csv_save_path)
+#             human_out = save_ade20k_human_out(
+#                 df=df,
+#                 human_output_save_path=human_output_path)
+#         else:
+#             human_out = torch.load(human_output_path)
             
         outputs = {
-            'human': human_out
+            'human': human_outputs_predictions
         }
-        # Load all explainer and model outputs on validation set
+        # Load all explainer and model outputs on test set
         explainer_out = torch.load(explainer_output_path)['test']
         model_out = torch.load(model_output_path)
-        # Create dictionary from image name -> index of val set
+        # Create dictionary from image name -> index of test set
         image_labels_path = 'data/ade20k/full_ade20k_imagelabels.pth'
         image_labels = torch.load(image_labels_path)
-        val_images = image_labels['val']
-        val_images = [path.split('images/')[-1] for path in val_images]
-        val_name_idx_dict = {}
-        for idx, image_name in enumerate(val_images):
-            val_name_idx_dict[image_name] = idx
+        test_images = image_labels['test']
+        test_images = [path.split('images/')[-1] for path in test_images]
+        test_name_idx_dict = {}
+        for idx, image_name in enumerate(test_images):
+            test_name_idx_dict[image_name] = idx
 
         # Pick out explainer and model outputs for selected images
         for name, agent_outputs in zip(['explainer', 'model'], [explainer_out, model_out]):
@@ -193,9 +200,9 @@ def get_outputs(dataset_name: str,
             for output_type in ['outputs', 'probabilities', 'predictions']:
                 cur_outputs = agent_outputs[output_type]
                 accumulator = []
-                for image_name in human_out['filenames']:
-                    val_idx = val_name_idx_dict[image_name]
-                    cur_item = cur_outputs[val_idx]
+                for image_name in human_outputs_predictions['filenames']:
+                    test_idx = test_name_idx_dict[image_name]
+                    cur_item = cur_outputs[test_idx]
                     accumulator.append(cur_item)
                 cur_out[output_type] = np.array(accumulator)
             outputs[name] = cur_out
