@@ -170,29 +170,38 @@ class ConceptPresence():
             return 0
 
         
-    def get_split_one_concept_presence(self,
-                                        split_features,
-                                        concept_cavs,
-                     save=True,
-                     overwrite=False):
-        '''
-        
-        '''
+    # def get_split_one_concept_presence(self,
+    #                                     split_features,
+    #                                     concept_cavs,
+    #                  save=True,
+    #                  overwrite=False):
+    #     '''
+    #     Given the features for a single split, calculate the 
+    #     '''
         
 
-        split_concept_presence = []
-        for image_features in split_features:
-            image_concept_presence = self.get_one_concept_presence(
-                concept_cavs=concept_cavs,
-                features=image_features,
-                # pooling=self.pooling_mode,
-            ) # either a N_features-dim vector (one for each patch) or a binary value
-            split_concept_presence.append(image_concept_presence)
-        return split_concept_presence
+    #     split_concept_presence = []
+    #     for image_features in split_features:
+    #         image_concept_presence = self.get_one_concept_presence(
+    #             concept_cavs=concept_cavs,
+    #             features=image_features,
+    #             # pooling=self.pooling_mode,
+    #         ) # either a N_features-dim vector (one for each patch) or a binary value
+    #         split_concept_presence.append(image_concept_presence)
+    #     return split_concept_presence
     
     def get_all_concepts_presence(self,
                                   features,
                                   concept_cavs_dict):
+        '''
+        Given features for a single image's patches, calculate the CPV for whole image for all concepts
+        Arg(s):
+            features : n_patches x D np.array
+                features of each superpixel patch
+            concept_cavs_dict:
+                dict[str : list[CAVs]]
+                    dictionary between concept names -> trained CAVs that represent the concept
+        '''
         concepts_presence = []
         for concept_name in self.concept_names:
             cavs = concept_cavs_dict[concept_name]
@@ -207,6 +216,7 @@ class ConceptPresence():
 
 
     def get_split_all_concept_presence(self, split, overwrite=False):
+        # TODO: to parallelize
         save_pv_path = self.save_pv_path_template.format(
             split, self.n_debug if self.debug else '')
         ensure_dir(os.path.dirname(save_pv_path))
